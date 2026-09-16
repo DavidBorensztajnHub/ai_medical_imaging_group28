@@ -52,6 +52,12 @@ from utils import (Dcm,
 
 from losses import (CrossEntropy)
 
+# IoU metric
+def iou_coef(pred, gt):
+    intersection = (pred & gt).sum(dim=(2, 3))
+    union = (pred | gt).sum(dim=(2, 3))
+    return intersection / (union + 1e-8)
+
 datasets_params: dict[str, dict[str, Any]] = {}
 # K for the number of classes
 # Avoids the classes with C (often used for the number of Channel)
@@ -108,6 +114,7 @@ def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int]:
                              root_dir,
                              img_transform=img_transform,
                              gt_transform= partial(gt_transform, K),
+                             augment=True,
                              debug=args.debug)
     train_loader = DataLoader(train_set,
                               batch_size=B,
@@ -118,12 +125,13 @@ def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int]:
                            root_dir,
                            img_transform=img_transform,
                            gt_transform=partial(gt_transform, K),
+                           augment=False,
                            debug=args.debug)
     val_loader = DataLoader(val_set,
                             batch_size=B,
                             num_workers=5,
                             shuffle=False)
-
+    
     args.dest.mkdir(parents=True, exist_ok=True)
 
     return (net, optimizer, device, train_loader, val_loader, K)
@@ -145,6 +153,8 @@ def runTraining(args):
     log_dice_tra: Tensor = torch.zeros((args.epochs, len(train_loader.dataset), K))
     log_loss_val: Tensor = torch.zeros((args.epochs, len(val_loader)))
     log_dice_val: Tensor = torch.zeros((args.epochs, len(val_loader.dataset), K))
+    log_iou_val: Tensor = torch.zeros((args.epochs, len(val_loader.dataset), K))
+    log_iou_tra: Tensor = torch.zeros((args.epochs, len(train_loader.dataset), K))
 
     best_dice: float = 0
 
@@ -159,6 +169,7 @@ def runTraining(args):
                     loader = train_loader
                     log_loss = log_loss_tra
                     log_dice = log_dice_tra
+                    log_iou  = log_iou_tra 
                 case 'val':
                     net.eval()
                     opt = None
@@ -167,6 +178,7 @@ def runTraining(args):
                     loader = val_loader
                     log_loss = log_loss_val
                     log_dice = log_dice_val
+                    log_iou  = log_iou_val
 
             with cm():  # Either dummy context manager, or the torch.no_grad for validation
                 j = 0
@@ -188,6 +200,8 @@ def runTraining(args):
                     # Metrics computation, not used for training
                     pred_seg = probs2one_hot(pred_probs)
                     log_dice[e, j:j + B, :] = dice_coef(pred_seg, gt)  # One DSC value per sample and per class
+
+                    log_iou[e, j:j + B, :] = iou_coef(pred_seg, gt)
 
                     loss = loss_fn(pred_probs, gt)
                     log_loss[e, i] = loss.item()  # One loss value per batch (averaged in the loss)
@@ -219,6 +233,8 @@ def runTraining(args):
         np.save(args.dest / "dice_tra.npy", log_dice_tra)
         np.save(args.dest / "loss_val.npy", log_loss_val)
         np.save(args.dest / "dice_val.npy", log_dice_val)
+        np.save(args.dest / "iou_tra.npy", log_iou_tra)
+        np.save(args.dest / "iou_val.npy", log_iou_val)
 
         current_dice: float = log_dice_val[e, :, 1:].mean().item()
         if current_dice > best_dice:

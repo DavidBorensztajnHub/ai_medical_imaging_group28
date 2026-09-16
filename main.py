@@ -50,15 +50,17 @@ from utils import (Dcm,
                    probs2class,
                    tqdm_,
                    dice_coef,
-                   save_images)
+                   save_images,
+                   union, 
+                   intersection)
 
 from losses import (CrossEntropy)
 
 # IoU metric
 def iou_coef(pred, gt):
-    intersection = (pred & gt).sum(dim=(2, 3))
-    union = (pred | gt).sum(dim=(2, 3))
-    return intersection / (union + 1e-8)
+    inter = intersection(pred, gt).sum(dim=(2, 3))
+    uni   = union(pred, gt).sum(dim=(2, 3))
+    return inter / (uni + 1e-8)
 
 datasets_params: dict[str, dict[str, Any]] = {}
 # K for the number of classes

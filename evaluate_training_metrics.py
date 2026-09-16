@@ -22,7 +22,7 @@ for c in range(num_classes):
     print(f"Class {c+1} Dice: {dice_no_bg[:, :, c].mean():.4f}")
     print(f"Class {c+1} IoU : {iou_no_bg[:, :, c].mean():.4f}")
 
-# Per epoch (optional)
+# Per epoch
 print("\n=== Per Epoch ===")
 for e in range(dice_no_bg.shape[0]):
     print(f"Epoch {e}: Dice={dice_no_bg[e].mean():.4f}, IoU={iou_no_bg[e].mean():.4f}")

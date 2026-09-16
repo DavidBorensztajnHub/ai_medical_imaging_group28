@@ -168,6 +168,7 @@ def write_fixed_patient(pdir: Path, dest_dir: Path, link_ct: bool) -> dict:
     src = (pdir / f"{pid}.nii.gz").resolve()
     if link_ct:
         os.symlink(src, ct_link)
+        # shutil.copy2(src, ct_link)  # fallback if symlink fails (voor Windows)
     else:
         shutil.copy2(src, ct_link)
 

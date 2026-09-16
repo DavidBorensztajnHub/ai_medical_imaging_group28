@@ -50,7 +50,7 @@ from utils import (Dcm,
                    dice_coef,
                    save_images)
 
-from losses import (CrossEntropy)
+from losses import (CrossEntropy, CrossEntropyDice)
 
 datasets_params: dict[str, dict[str, Any]] = {}
 # K for the number of classes
@@ -135,6 +135,7 @@ def runTraining(args):
 
     if args.mode == "full":
         loss_fn = CrossEntropy(idk=list(range(K)))  # Supervise both background and foreground
+        # loss_fn = CrossEntropyDice(idk=list(range(K)))
     elif args.mode in ["partial"] and args.dataset == 'SEGTHOR':
         loss_fn = CrossEntropy(idk=[0, 1, 3, 4])  # Do not supervise the heart (class 2)
     else:

@@ -73,6 +73,11 @@ data/experiments/refined_window: | data/gt/watershed_refined
 	python $(CFLAGS) slice_segthor.py --experiment refined_window --dest_dir $@_tmp
 	mv $@_tmp $@
 
+data/experiments/refined_ce_dice: | data/gt/watershed_refined
+	rm -rf $@_tmp $@
+	python $(CFLAGS) slice_segthor.py --experiment refined_ce_dice --dest_dir $@_tmp
+	mv $@_tmp $@
+
 .PHONY: data-experiments
 data-experiments: data/experiments/original data/experiments/watershed_minmax \
                   data/experiments/watershed_window data/experiments/refined_window

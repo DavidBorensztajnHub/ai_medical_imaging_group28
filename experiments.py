@@ -136,3 +136,22 @@ register(Experiment(
     slice=SliceConfig(source_dir="data/gt/watershed_refined", window=MEDIASTINAL),
     train=TrainConfig(mode="full", loss="ce", augment=False),
 ))
+
+# Refined GT fix + HU windowing + CE/Dice combined loss.
+# Compared with refined_window, only the training loss changes.
+register(Experiment(
+    name="refined_ce_dice",
+    description=(
+        "Refined GT fix + HU mediastinal windowing + "
+        "cross-entropy/Dice combined loss."
+    ),
+    slice=SliceConfig(
+        source_dir="data/gt/watershed_refined",
+        window=MEDIASTINAL,
+    ),
+    train=TrainConfig(
+        mode="full",
+        loss="ce_dice",
+        augment=False,
+    ),
+))

@@ -34,6 +34,8 @@ from PIL import Image
 from tqdm import tqdm
 from torch import Tensor, einsum
 
+from scipy.spatial.distance import directed_hausdorff
+
 tqdm_ = partial(tqdm, dynamic_ncols=True,
                 leave=True,
                 bar_format='{l_bar}{bar}| {n_fmt}/{total_fmt} [{rate_fmt}{postfix}]')
@@ -176,3 +178,40 @@ def union(a: Tensor, b: Tensor) -> Tensor:
     assert sset(res, [0, 1])
 
     return res
+
+# IoU metric
+def iou_coef(pred, gt):
+    inter = intersection(pred, gt).sum(dim=(2, 3))
+    uni   = union(pred, gt).sum(dim=(2, 3))
+    return inter / (uni + 1e-8)
+
+def hausdorff_distance(pred: Tensor, gt: Tensor) -> Tensor:
+    """
+    pred, gt: one-hot segmentations of shape (B, K, W, H)
+    Returns: Tensor of shape (B, K) with symmetric Hausdorff distances.
+    NaN when a class is absent in either pred or gt.
+    """
+    B, K, W, H = pred.shape
+    hd = torch.zeros((B, K), dtype=torch.float32)
+
+    pred_np = pred.cpu().numpy()
+    gt_np   = gt.cpu().numpy()
+
+    for b in range(B):
+        for c in range(K):
+            pred_pts = np.argwhere(pred_np[b, c] > 0)
+            gt_pts   = np.argwhere(gt_np[b, c] > 0)
+
+            # If class absent → undefined Hausdorff
+            if len(pred_pts) == 0 or len(gt_pts) == 0:
+                hd[b, c] = float("nan")
+                continue
+
+            # Directed Hausdorff both ways
+            hd_fwd = directed_hausdorff(pred_pts, gt_pts)[0]
+            hd_bwd = directed_hausdorff(gt_pts, pred_pts)[0]
+
+            hd[b, c] = max(hd_fwd, hd_bwd)
+
+    return hd
+

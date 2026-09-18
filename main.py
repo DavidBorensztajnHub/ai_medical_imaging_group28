@@ -51,7 +51,6 @@ from utils import (Dcm,
                    tqdm_,
                    dice_coef,
                    save_images,
-                   hausdorff_distance,
                    iou_coef)
 
 from losses import (CrossEntropy)
@@ -208,8 +207,6 @@ def runTraining(args):
     log_dice_val: Tensor = torch.zeros((args.epochs, len(val_loader.dataset), K))
     log_iou_val: Tensor = torch.zeros((args.epochs, len(val_loader.dataset), K))
     log_iou_tra: Tensor = torch.zeros((args.epochs, len(train_loader.dataset), K))
-    log_hd_val: Tensor = torch.zeros((args.epochs, len(val_loader.dataset), K))
-    log_hd_tra: Tensor = torch.zeros((args.epochs, len(train_loader.dataset), K))
 
     best_dice: float = 0
 
@@ -224,8 +221,7 @@ def runTraining(args):
                     loader = train_loader
                     log_loss = log_loss_tra
                     log_dice = log_dice_tra
-                    log_iou  = log_iou_tra 
-                    log_hd = log_hd_tra
+                    log_iou  = log_iou_tra
 
                 case 'val':
                     net.eval()
@@ -236,7 +232,6 @@ def runTraining(args):
                     log_loss = log_loss_val
                     log_dice = log_dice_val
                     log_iou  = log_iou_val
-                    log_hd = log_hd_val
 
             with cm():  # Either dummy context manager, or the torch.no_grad for validation
                 j = 0
@@ -261,7 +256,12 @@ def runTraining(args):
 
                     log_iou[e, j:j + B, :] = iou_coef(pred_seg, gt)
 
-                    log_hd[e, j:j+B, :] = hausdorff_distance(pred_seg, gt)
+                    # NOTE: boundary metrics (HD / HD95 / ASSD / NSD) are NOT
+                    # computed here. Per-slice 2D Hausdorff on every batch was
+                    # extremely slow and is not the right quantity for a 3D
+                    # organ. They are computed once, in 3D and in mm, on the
+                    # reassembled volumes by evaluate_3d.py (using the val_3d
+                    # predictions saved below).
 
                     loss = loss_fn(pred_probs, gt)
                     log_loss[e, i] = loss.item()  # One loss value per batch (averaged in the loss)
@@ -308,9 +308,6 @@ def runTraining(args):
         np.save(args.dest / "dice_val.npy", log_dice_val)
         np.save(args.dest / "iou_tra.npy", log_iou_tra)
         np.save(args.dest / "iou_val.npy", log_iou_val)
-        np.save(args.dest / "hd_val.npy", log_hd_val)
-        np.save(args.dest / "hd_tra.npy", log_hd_tra)
-
 
         current_dice: float = log_dice_val[e, :, 1:].mean().item()
         if current_dice > best_dice:

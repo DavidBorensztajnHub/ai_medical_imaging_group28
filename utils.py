@@ -35,6 +35,8 @@ from tqdm import tqdm
 from torch import Tensor, einsum
 
 from scipy.spatial.distance import directed_hausdorff
+from scipy.spatial import cKDTree
+from scipy.ndimage import binary_erosion
 
 tqdm_ = partial(tqdm, dynamic_ncols=True,
                 leave=True,
@@ -225,31 +227,79 @@ def hausdorff_distance(pred: Tensor, gt: Tensor) -> Tensor:
 
     return hd
 
-"""
-def hausdorff_distance_3d(pred: Tensor, gt: Tensor) -> Tensor:
-    """ """
-    pred, gt: one-hot segmentations of shape (B, K, W, H, D)
-    Returns: Tensor of shape (B, K)
-    """ """
-    B, K, W, H, D = pred.shape
-    hd = torch.zeros((B, K), dtype=torch.float32)
+# ---------------------------------------------------------------------------
+# 3D boundary metrics (spacing-aware), following Metrics Reloaded recommendations
+# for organ segmentation. From a single pass over each class' surface voxels we
+# derive several *separate* boundary scores so they can be compared:
+#   - HD    : max (classic) Hausdorff  -> worst-case error, outlier-sensitive
+#   - HD95  : 95th-percentile Hausdorff -> robust worst-case
+#   - ASSD  : average symmetric surface distance -> mean boundary error
+#   - NSD   : Normalised Surface Dice at tolerance tau -> fraction within tau mm
+# Distances are in millimetres, using the voxel spacing, so anisotropic slice
+# thickness is handled correctly (e.g. SegTHOR ~0.98mm in-plane vs 2.5mm in z).
+# ---------------------------------------------------------------------------
 
-    pred_np = pred.cpu().numpy()
-    gt_np = gt.cpu().numpy()
+def _surface_voxels(mask: np.ndarray) -> np.ndarray:
+    """Coordinates (voxel indices) of the surface voxels of a binary mask."""
+    if not mask.any():
+        return np.empty((0, mask.ndim), dtype=np.int64)
+    # A voxel is on the surface if it is foreground but not fully interior.
+    surface = mask & ~binary_erosion(mask)
+    return np.argwhere(surface)
+
+
+def _symmetric_surface_distances(pred_mask: np.ndarray,
+                                 gt_mask: np.ndarray,
+                                 spacing) -> Tuple:
+    """
+    Nearest-surface distances (in mm) between the two masks, both directions.
+    Returns (d_pred_to_gt, d_gt_to_pred) or (None, None) when undefined
+    (i.e. the class is absent from either mask).
+    """
+    pred_surf = _surface_voxels(pred_mask)
+    gt_surf = _surface_voxels(gt_mask)
+    if len(pred_surf) == 0 or len(gt_surf) == 0:
+        return None, None
+
+    spacing = np.asarray(spacing, dtype=np.float64)
+    pred_mm = pred_surf * spacing
+    gt_mm = gt_surf * spacing
+
+    d_pred_to_gt, _ = cKDTree(gt_mm).query(pred_mm)
+    d_gt_to_pred, _ = cKDTree(pred_mm).query(gt_mm)
+    return d_pred_to_gt, d_gt_to_pred
+
+
+def boundary_metrics_3d(pred: Tensor, gt: Tensor, spacing,
+                        nsd_tau: float = 1.0) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
+    """
+    pred, gt: one-hot segmentations of shape (B, K, W, H, D).
+    spacing:  (s0, s1, s2) voxel size in mm for the (W, H, D) axes.
+    nsd_tau:  tolerance (mm) for the Normalised Surface Dice.
+
+    Returns (hd, hd95, assd, nsd), each a Tensor of shape (B, K). All four come
+    from the SAME surface-distance pass, so they are cheap to report together
+    and can be compared side by side. Entries are NaN when the class is absent
+    from pred or gt (boundary distance undefined), so aggregate with np.nanmean.
+    """
+    B, K = pred.shape[:2]
+    hd = torch.full((B, K), float("nan"), dtype=torch.float32)
+    hd95 = torch.full((B, K), float("nan"), dtype=torch.float32)
+    assd = torch.full((B, K), float("nan"), dtype=torch.float32)
+    nsd = torch.full((B, K), float("nan"), dtype=torch.float32)
+
+    pred_np = pred.cpu().numpy().astype(bool)
+    gt_np = gt.cpu().numpy().astype(bool)
 
     for b in range(B):
-        for c in range(K):
-            pred_pts = np.argwhere(pred_np[b, c] > 0)
-            gt_pts = np.argwhere(gt_np[b, c] > 0)
-
-            if len(pred_pts) == 0 or len(gt_pts) == 0:
-                hd[b, c] = float("nan")
+        for k in range(K):
+            d_pg, d_gp = _symmetric_surface_distances(pred_np[b, k], gt_np[b, k], spacing)
+            if d_pg is None:
                 continue
 
-            hd_fwd = directed_hausdorff(pred_pts, gt_pts)[0]
-            hd_bwd = directed_hausdorff(gt_pts, pred_pts)[0]
+            hd[b, k] = max(d_pg.max(), d_gp.max())
+            hd95[b, k] = max(np.percentile(d_pg, 95), np.percentile(d_gp, 95))
+            assd[b, k] = (d_pg.sum() + d_gp.sum()) / (len(d_pg) + len(d_gp))
+            nsd[b, k] = ((d_pg <= nsd_tau).sum() + (d_gp <= nsd_tau).sum()) / (len(d_pg) + len(d_gp))
 
-            hd[b, c] = max(hd_fwd, hd_bwd)
-
-    return hd
-"""
+    return hd, hd95, assd, nsd

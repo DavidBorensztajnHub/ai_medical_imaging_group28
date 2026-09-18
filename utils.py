@@ -185,6 +185,16 @@ def iou_coef(pred, gt):
     uni   = union(pred, gt).sum(dim=(2, 3))
     return inter / (uni + 1e-8)
 
+def iou_3d(pred: Tensor, gt: Tensor) -> Tensor:
+    """
+    pred, gt: one-hot segmentations of shape (B, K, W, H, D)
+    Returns: Tensor of shape (B, K)
+    """
+    inter = intersection(pred, gt).sum(dim=(2, 3, 4))
+    uni = union(pred, gt).sum(dim=(2, 3, 4))
+
+    return inter / (uni + 1e-8)
+
 def hausdorff_distance(pred: Tensor, gt: Tensor) -> Tensor:
     """
     pred, gt: one-hot segmentations of shape (B, K, W, H)
@@ -215,3 +225,31 @@ def hausdorff_distance(pred: Tensor, gt: Tensor) -> Tensor:
 
     return hd
 
+"""
+def hausdorff_distance_3d(pred: Tensor, gt: Tensor) -> Tensor:
+    """ """
+    pred, gt: one-hot segmentations of shape (B, K, W, H, D)
+    Returns: Tensor of shape (B, K)
+    """ """
+    B, K, W, H, D = pred.shape
+    hd = torch.zeros((B, K), dtype=torch.float32)
+
+    pred_np = pred.cpu().numpy()
+    gt_np = gt.cpu().numpy()
+
+    for b in range(B):
+        for c in range(K):
+            pred_pts = np.argwhere(pred_np[b, c] > 0)
+            gt_pts = np.argwhere(gt_np[b, c] > 0)
+
+            if len(pred_pts) == 0 or len(gt_pts) == 0:
+                hd[b, c] = float("nan")
+                continue
+
+            hd_fwd = directed_hausdorff(pred_pts, gt_pts)[0]
+            hd_bwd = directed_hausdorff(gt_pts, pred_pts)[0]
+
+            hd[b, c] = max(hd_fwd, hd_bwd)
+
+    return hd
+"""

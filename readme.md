@@ -41,6 +41,7 @@ The project is based around the SegTHOR challenge data, which was kindly allowed
 > Each technique (loss, model, optimizer, augmentation, ...) is a small entry in a
 > `segpipe/` registry plus a short YAML in `configs/experiments/`. Start here:
 > - [`PIPELINE_PLAN.md`](PIPELINE_PLAN.md) — how the pipeline works and how to add an experiment
+> - [`METRICS_PLAN.md`](METRICS_PLAN.md) — the metrics we report (Dice, HD/HD95/ASSD, NSD), how they work and why
 > - [`DECISIONS.md`](DECISIONS.md) — current choices and why
 > - [`HANDOFF.md`](HANDOFF.md) — data fixes (aorta/esophagus GT, HU windowing) and history
 
@@ -313,7 +314,7 @@ $ tar cf group-XX.tar.gz - group-XX/
 ## Known issues
 <a id="cannot-pickle-lambda-in-the-dataloader"></a>
 ### Cannot pickle lambda in the dataloader
-Some installs (probably due to Python/Pytorch version mismatch) throw an error about an inability to pickle lambda functions (at the dataloader stage). Short of reinstalling everything, setting the number of workers to 0 seems to get around the problem (`--num_workers 0`).
+Some installs (probably due to Python/Pytorch version mismatch) throw an error about an inability to pickle lambda functions (at the dataloader stage). This is most common on Windows. Short of reinstalling everything, setting the number of workers to 0 seems to get around the problem: pass `--num_workers 0` on the old `main.py` path, or set `train.num_workers: 0` in your config for the `run.py` / segpipe pipeline.
 
 <a id="pytorch-not-compiled-for-numpy-20"></a>
 ### Pytorch not compiled for Numpy 2.0

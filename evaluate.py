@@ -1,9 +1,9 @@
 # Om te zorgen dat dit bestand gelijk het juiste experiment pakt
 # Kan je het aanroepen met python evaluate.py --experiment <experiment name>
 #
-# This summarises the per-epoch 2D overlap metrics (Dice, IoU) logged during
-# training. Boundary metrics (HD / HD95 / ASSD / NSD) are NOT logged per epoch
-# anymore -- they are computed once, in 3D and in mm, by evaluate_3d.py.
+# This summarises the per-epoch 2D overlap metrics (Dice, IoU) logged by the old
+# main.py path. The 3D metrics (Dice / HD / HD95 / ASSD / NSD, in mm) live in the
+# segpipe pipeline: run.py -> segpipe/evaluate.py.
 
 import numpy as np
 import time

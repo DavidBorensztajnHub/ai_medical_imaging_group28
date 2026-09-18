@@ -256,12 +256,9 @@ def runTraining(args):
 
                     log_iou[e, j:j + B, :] = iou_coef(pred_seg, gt)
 
-                    # NOTE: boundary metrics (HD / HD95 / ASSD / NSD) are NOT
-                    # computed here. Per-slice 2D Hausdorff on every batch was
-                    # extremely slow and is not the right quantity for a 3D
-                    # organ. They are computed once, in 3D and in mm, on the
-                    # reassembled volumes by evaluate_3d.py (using the val_3d
-                    # predictions saved below).
+                    # NOTE: 3D metrics (Dice/HD/HD95/ASSD/NSD, in mm) are not
+                    # computed here. They are produced by the segpipe pipeline
+                    # (run.py -> segpipe/evaluate.py) on stitched volumes.
 
                     loss = loss_fn(pred_probs, gt)
                     log_loss[e, i] = loss.item()  # One loss value per batch (averaged in the loss)
@@ -274,23 +271,11 @@ def runTraining(args):
                         with warnings.catch_warnings():
                             warnings.filterwarnings('ignore', category=UserWarning)
 
-                            # tijdelijk test
-                            if i == 0 and e == 0 and m == 'val':
-                                print("STEMS:")
-                                print(data['stems'])
-                            #
-
                             predicted_class: Tensor = probs2class(pred_probs)
                             mult: int = 63 if K == 5 else (255 / (K - 1))
                             save_images(predicted_class * mult,
                                         data['stems'],
                                         args.dest / f"iter{e:03d}" / m)
-
-                            # Save raw class labels for 3D evaluation
-                            for pred, stem in zip(predicted_class, data['stems']):
-                                save_path = (args.dest / f"iter{e:03d}" / "val_3d" / stem).with_suffix(".npy")
-                                save_path.parent.mkdir(parents=True, exist_ok=True)
-                                np.save(save_path, pred.cpu().numpy().astype(np.uint8))
 
                     j += B  # Keep in mind that _in theory_, each batch might have a different size
                     # For the DSC average: do not take the background class (0) into account:

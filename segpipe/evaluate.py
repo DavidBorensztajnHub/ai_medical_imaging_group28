@@ -19,6 +19,8 @@ from pathlib import Path
 
 import numpy as np
 import nibabel as nib
+from scipy.ndimage import binary_erosion
+from scipy.spatial import cKDTree
 from skimage.io import imread
 from skimage.transform import resize
 
@@ -29,6 +31,9 @@ from stitch import get_z
 # Predictions are saved as class*63 PNGs (see train.py); {0,63,126,189,252} for K=5.
 _LABEL_STEP = 63
 _LABEL_VALUES = {k * _LABEL_STEP for k in range(K)}
+
+# Tolerance (mm) for the Normalised Surface Dice.
+NSD_TAU_MM: float = 1.0
 
 
 def dice(pred: np.ndarray, gt: np.ndarray, spacing) -> float:
@@ -42,9 +47,74 @@ def dice(pred: np.ndarray, gt: np.ndarray, spacing) -> float:
     return 1.0 if total == 0 else 2 * intersection / total
 
 
+# ---------------------------------------------------------------------------
+# Boundary metrics (Metrics Reloaded recommendations for organ segmentation).
+# Distances are computed in millimetres, using the voxel spacing, on the surface
+# voxels of each class -- so anisotropic slice thickness (e.g. SegTHOR ~0.98mm
+# in-plane vs 2.5mm through-plane) is handled correctly. HD (max) is kept next to
+# HD95 so the two can be compared: max-HD is dominated by a single outlier voxel,
+# HD95 is its robust cousin.
+#   hd   : max (classic) Hausdorff  -> worst-case boundary error (outlier-sensitive)
+#   hd95 : 95th-percentile Hausdorff -> robust worst-case
+#   assd : average symmetric surface distance -> mean boundary error
+#   nsd  : Normalised Surface Dice at NSD_TAU_MM -> fraction of surface within tau
+# All return NaN when the class is absent from pred or gt (boundary undefined).
+# ---------------------------------------------------------------------------
+
+def _surface_distances(pred: np.ndarray, gt: np.ndarray, spacing):
+    """Symmetric nearest-surface distances (mm) between two binary masks.
+    Returns (d_pred_to_gt, d_gt_to_pred), or (None, None) if either mask is empty."""
+    def surface(mask: np.ndarray) -> np.ndarray:
+        if not mask.any():
+            return np.empty((0, mask.ndim))
+        return np.argwhere(mask & ~binary_erosion(mask))
+
+    pred_surf, gt_surf = surface(pred), surface(gt)
+    if len(pred_surf) == 0 or len(gt_surf) == 0:
+        return None, None
+
+    sp = np.asarray(spacing, dtype=np.float64)
+    d_pred_to_gt, _ = cKDTree(gt_surf * sp).query(pred_surf * sp)
+    d_gt_to_pred, _ = cKDTree(pred_surf * sp).query(gt_surf * sp)
+    return d_pred_to_gt, d_gt_to_pred
+
+
+def hd(pred: np.ndarray, gt: np.ndarray, spacing) -> float:
+    d_pg, d_gp = _surface_distances(pred, gt, spacing)
+    if d_pg is None:
+        return float("nan")
+    return float(max(d_pg.max(), d_gp.max()))
+
+
+def hd95(pred: np.ndarray, gt: np.ndarray, spacing) -> float:
+    d_pg, d_gp = _surface_distances(pred, gt, spacing)
+    if d_pg is None:
+        return float("nan")
+    return float(max(np.percentile(d_pg, 95), np.percentile(d_gp, 95)))
+
+
+def assd(pred: np.ndarray, gt: np.ndarray, spacing) -> float:
+    d_pg, d_gp = _surface_distances(pred, gt, spacing)
+    if d_pg is None:
+        return float("nan")
+    return float((d_pg.sum() + d_gp.sum()) / (len(d_pg) + len(d_gp)))
+
+
+def nsd(pred: np.ndarray, gt: np.ndarray, spacing) -> float:
+    d_pg, d_gp = _surface_distances(pred, gt, spacing)
+    if d_pg is None:
+        return float("nan")
+    within = (d_pg <= NSD_TAU_MM).sum() + (d_gp <= NSD_TAU_MM).sum()
+    return float(within / (len(d_pg) + len(d_gp)))
+
+
 # name -> fn(pred_mask, gt_mask, spacing) -> float
 METRICS: dict = {
     "dice": dice,
+    "hd": hd,
+    "hd95": hd95,
+    "assd": assd,
+    "nsd": nsd,
 }
 
 
@@ -118,9 +188,12 @@ def evaluate_3d(run_dir: Path, cfg, patient_ids: list[str], metric_names) -> dic
     for name, per_patient in scores.items():
         np.savez(out_dir / f"{name}.npz", **per_patient)  # patient -> K values
         table = np.stack(list(per_patient.values()))  # patients x K; averages leave out the background
+        # nanmean: boundary metrics are NaN for organs absent in a patient, so a
+        # single missing organ must not poison the mean (no-op for dice, which
+        # never returns NaN).
         summary[name] = {
-            "mean": round(float(table[:, 1:].mean()), 4),
-            "per_class": {CLASS_NAMES[k]: round(float(table[:, k].mean()), 4) for k in range(1, K)},
+            "mean": round(float(np.nanmean(table[:, 1:])), 4),
+            "per_class": {CLASS_NAMES[k]: round(float(np.nanmean(table[:, k])), 4) for k in range(1, K)},
             "per_patient": {pid: {CLASS_NAMES[k]: round(float(v[k]), 4) for k in range(1, K)}
                             for pid, v in per_patient.items()},
         }

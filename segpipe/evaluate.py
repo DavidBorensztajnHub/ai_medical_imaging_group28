@@ -24,10 +24,10 @@ from pathlib import Path
 
 import numpy as np
 import nibabel as nib
-from skimage.io import imread
-from skimage.transform import resize
 from scipy.ndimage import binary_erosion
 from scipy.spatial import cKDTree
+from skimage.io import imread
+from skimage.transform import resize
 
 from segpipe.data import CLASS_NAMES, K
 from preprocessing import center_crop_pad

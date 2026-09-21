@@ -50,7 +50,8 @@ from utils import (Dcm,
                    probs2class,
                    tqdm_,
                    dice_coef,
-                   save_images)
+                   save_images,
+                   iou_coef)
 
 from losses import (CrossEntropy)
 
@@ -181,7 +182,7 @@ def setup(args) -> tuple[nn.Module, Any, Any, DataLoader, DataLoader, int]:
                             batch_size=B,
                             num_workers=5,
                             shuffle=False)
-
+    
     args.dest.mkdir(parents=True, exist_ok=True)
 
     return (net, optimizer, device, train_loader, val_loader, K)
@@ -204,6 +205,8 @@ def runTraining(args):
     log_dice_tra: Tensor = torch.zeros((args.epochs, len(train_loader.dataset), K))
     log_loss_val: Tensor = torch.zeros((args.epochs, len(val_loader)))
     log_dice_val: Tensor = torch.zeros((args.epochs, len(val_loader.dataset), K))
+    log_iou_val: Tensor = torch.zeros((args.epochs, len(val_loader.dataset), K))
+    log_iou_tra: Tensor = torch.zeros((args.epochs, len(train_loader.dataset), K))
 
     best_dice: float = 0
 
@@ -218,6 +221,8 @@ def runTraining(args):
                     loader = train_loader
                     log_loss = log_loss_tra
                     log_dice = log_dice_tra
+                    log_iou  = log_iou_tra
+
                 case 'val':
                     net.eval()
                     opt = None
@@ -226,6 +231,7 @@ def runTraining(args):
                     loader = val_loader
                     log_loss = log_loss_val
                     log_dice = log_dice_val
+                    log_iou  = log_iou_val
 
             with cm():  # Either dummy context manager, or the torch.no_grad for validation
                 j = 0
@@ -248,6 +254,12 @@ def runTraining(args):
                     pred_seg = probs2one_hot(pred_probs)
                     log_dice[e, j:j + B, :] = dice_coef(pred_seg, gt)  # One DSC value per sample and per class
 
+                    log_iou[e, j:j + B, :] = iou_coef(pred_seg, gt)
+
+                    # NOTE: 3D metrics (Dice/HD/HD95/ASSD/NSD, in mm) are not
+                    # computed here. They are produced by the segpipe pipeline
+                    # (run.py -> segpipe/evaluate.py) on stitched volumes.
+
                     loss = loss_fn(pred_probs, gt)
                     log_loss[e, i] = loss.item()  # One loss value per batch (averaged in the loss)
 
@@ -258,6 +270,7 @@ def runTraining(args):
                     if m == 'val':
                         with warnings.catch_warnings():
                             warnings.filterwarnings('ignore', category=UserWarning)
+
                             predicted_class: Tensor = probs2class(pred_probs)
                             mult: int = 63 if K == 5 else (255 / (K - 1))
                             save_images(predicted_class * mult,
@@ -278,6 +291,8 @@ def runTraining(args):
         np.save(args.dest / "dice_tra.npy", log_dice_tra)
         np.save(args.dest / "loss_val.npy", log_loss_val)
         np.save(args.dest / "dice_val.npy", log_dice_val)
+        np.save(args.dest / "iou_tra.npy", log_iou_tra)
+        np.save(args.dest / "iou_val.npy", log_iou_val)
 
         current_dice: float = log_dice_val[e, :, 1:].mean().item()
         if current_dice > best_dice:

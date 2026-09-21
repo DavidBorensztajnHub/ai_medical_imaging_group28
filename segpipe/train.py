@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 from segpipe.data import CLASS_NAMES, K
-from utils import dice_coef, probs2class, probs2one_hot, save_images, tqdm_
+from utils import dice_from_parts, dice_parts, probs2class, probs2one_hot, save_images, tqdm_
 
 
 def seed_everything(seed: int) -> None:
@@ -29,6 +29,17 @@ def seed_worker(worker_id: int) -> None:
     worker_seed = torch.initial_seed() % 2 ** 32
     np.random.seed(worker_seed)
     random.seed(worker_seed)
+
+
+def patient_dice(totals: dict) -> torch.Tensor:
+    """(patients, K) Dice, each patient's counts pooled over all of that patient's slices.
+
+    Dividing once per patient instead of once per slice is what keeps an organ the
+    patient does not have from scoring 1.0 on every slice it is missing from. This is
+    the same reduction segpipe.evaluate.evaluate_3d applies to the stitched volumes,
+    so the 2D and the 3D Dice are directly comparable.
+    """
+    return torch.stack([dice_from_parts(inter, card) for _, (inter, card) in sorted(totals.items())])
 
 
 def pick_device(name: str = "auto") -> torch.device:
@@ -55,6 +66,9 @@ def train(model, loss_fn, optimizer, scheduler, train_set, val_set, cfg, run_dir
         "train": (torch.zeros((E, len(loaders["train"]))), torch.zeros((E, len(train_set), K))),
         "val": (torch.zeros((E, len(loaders["val"]))), torch.zeros((E, len(val_set), K))),
     }
+    # Per-epoch (patients, K) Dice, the number the run is actually judged on. The
+    # per-slice arrays above are kept as-is so plot.py and dice_val.npy still work.
+    dice_patient: dict[str, list] = {"train": [], "val": []}
 
     csv_path = run_dir / "log.csv"
     with open(csv_path, "w", newline="") as f:
@@ -72,6 +86,7 @@ def train(model, loss_fn, optimizer, scheduler, train_set, val_set, cfg, run_dir
             log_loss, log_dice = logs[m]
             loader = loaders[m]
             desc = f">> Training   ({e: 4d})" if is_train else f">> Validation ({e: 4d})"
+            totals: dict[str, list] = {}  # patient -> [pooled inter (K), pooled card (K)]
 
             with torch.set_grad_enabled(is_train):
                 j = 0
@@ -90,7 +105,12 @@ def train(model, loss_fn, optimizer, scheduler, train_set, val_set, cfg, run_dir
                     pred_probs = F.softmax(1 * pred_logits, dim=1)
 
                     pred_seg = probs2one_hot(pred_probs)
-                    log_dice[e, j:j + B, :] = dice_coef(pred_seg, gt)
+                    inter, card = dice_parts(pred_seg, gt)
+                    log_dice[e, j:j + B, :] = dice_from_parts(inter, card)
+                    for b, stem in enumerate(data["stems"]):
+                        acc = totals.setdefault(stem.rsplit("_", 1)[0], [torch.zeros(K), torch.zeros(K)])
+                        acc[0] += inter[b].detach().cpu()
+                        acc[1] += card[b].detach().cpu()
 
                     loss = loss_fn(pred_probs, gt)
                     log_loss[e, i] = loss.item()
@@ -107,10 +127,13 @@ def train(model, loss_fn, optimizer, scheduler, train_set, val_set, cfg, run_dir
                             save_images(predicted_class * mult, data["stems"], run_dir / f"iter{e:03d}" / m)
 
                     j += B
-                    postfix_dict: dict[str, str] = {"Dice": f"{log_dice[e, :j, 1:].mean():05.3f}",
+                    running = patient_dice(totals).mean(dim=0)  # partial: patients still being filled in
+                    postfix_dict: dict[str, str] = {"Dice": f"{running[1:].mean():05.3f}",
                                                     "Loss": f"{log_loss[e, :i + 1].mean():5.2e}"}
-                    postfix_dict |= {f"Dice-{k}": f"{log_dice[e, :j, k].mean():05.3f}" for k in range(1, K)}
+                    postfix_dict |= {f"Dice-{k}": f"{running[k]:05.3f}" for k in range(1, K)}
                     tq_iter.set_postfix(postfix_dict)
+
+            dice_patient[m].append(patient_dice(totals))
 
         lr = optimizer.param_groups[-1]["lr"]
         if scheduler is not None:
@@ -120,9 +143,11 @@ def train(model, loss_fn, optimizer, scheduler, train_set, val_set, cfg, run_dir
         np.save(run_dir / "dice_tra.npy", logs["train"][1])
         np.save(run_dir / "loss_val.npy", logs["val"][0])
         np.save(run_dir / "dice_val.npy", logs["val"][1])
+        np.save(run_dir / "dice_tra_patient.npy", torch.stack(dice_patient["train"]))
+        np.save(run_dir / "dice_val_patient.npy", torch.stack(dice_patient["val"]))
 
-        val_dice_per_class = logs["val"][1][e, :, 1:].mean(dim=0)
-        current_dice: float = logs["val"][1][e, :, 1:].mean().item()
+        val_dice_per_class = dice_patient["val"][e][:, 1:].mean(dim=0)
+        current_dice: float = val_dice_per_class.mean().item()
         with open(csv_path, "a", newline="") as f:
             csv.writer(f).writerow([e, f"{logs['train'][0][e].mean():.5f}", f"{logs['val'][0][e].mean():.5f}",
                                     f"{current_dice:.4f}"] + [f"{v:.4f}" for v in val_dice_per_class.tolist()]
@@ -143,7 +168,8 @@ def train(model, loss_fn, optimizer, scheduler, train_set, val_set, cfg, run_dir
             torch.save(model, run_dir / "bestmodel.pkl")
             torch.save(model.state_dict(), run_dir / "bestweights.pt")
 
-    best_per_class = logs["val"][1][best_epoch, :, 1:].mean(dim=0).tolist() if best_epoch >= 0 else [None] * (K - 1)
+    best_per_class = (dice_patient["val"][best_epoch][:, 1:].mean(dim=0).tolist()
+                      if best_epoch >= 0 else [None] * (K - 1))
     return {"best_epoch": best_epoch,
             "val_dice_2d": round(best_dice, 4),
             "val_dice_2d_per_class": {n: (round(v, 4) if v is not None else None)

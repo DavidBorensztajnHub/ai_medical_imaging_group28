@@ -10,5 +10,6 @@ ai4mi/
 __pycache__/
 .DS_Store
 slurm_logs/
+*.log
 
 projects

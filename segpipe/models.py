@@ -5,6 +5,7 @@ from torch import nn
 
 from ENet import ENet
 from ShallowNet import shallowCNN
+from enet_transformer import ENetTransformer
 
 
 def _no_pretrained(name: str, pretrained: bool) -> None:
@@ -26,10 +27,20 @@ def build_shallow(in_channels: int, K: int, pretrained: bool = False, **params) 
     return net
 
 
+def build_enet_transformer(in_channels: int, K: int, pretrained: bool = False, **params) -> nn.Module:
+    # params: transformer_at (str or list, default after bottleneck (bn3)), num_layers, num_heads,
+    # mlp_ratio, dropout, use_pos_embed
+    _no_pretrained("enet_transformer", pretrained)
+    net = ENetTransformer(in_channels, K, **params)
+    net.init_weights()
+    return net
+
+
 # name -> build(in_channels, K, pretrained, **params) -> nn.Module returning B x K x H x W logits
 MODELS: dict = {
     "enet": build_enet,
     "shallow": build_shallow,
+    "enet_transformer": build_enet_transformer,
 }
 
 

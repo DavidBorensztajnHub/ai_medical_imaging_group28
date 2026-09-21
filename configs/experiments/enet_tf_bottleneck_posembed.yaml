@@ -1,0 +1,4 @@
+base: enet_tf_bottleneck.yaml
+idea: "same placement, ablates sinusoidal positional embedding"
+model:
+  params: {transformer_at: [bottleneck], use_pos_embed: true}

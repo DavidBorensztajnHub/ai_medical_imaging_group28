@@ -10,19 +10,19 @@
   "debug": false,
   "device": "mps",
   "git": {
-    "commit": "3415b80",
+    "commit": "6849221",
     "branch": "Britt_metrics",
     "dirty": true
   },
   "best_epoch": 23,
-  "val_dice_2d": 0.6919,
+  "val_dice_2d": 0.4573,
   "val_dice_2d_per_class": {
-    "esophagus": 0.5562,
-    "heart": 0.7885,
-    "trachea": 0.7869,
-    "aorta": 0.6361
+    "esophagus": 0.2405,
+    "heart": 0.6982,
+    "trachea": 0.5118,
+    "aorta": 0.3786
   },
-  "train_minutes": 132.2,
+  "train_minutes": 129.0,
   "metrics_3d": {
     "dice": {
       "mean": 0.4557,

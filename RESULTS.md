@@ -6,15 +6,25 @@ Dice at the best epoch (chosen on 2D val Dice), mean over the 4 organs (± std o
 
 | Experiment | Split | Runs | Owner | 2D val Dice | Δ 2D | 3D Dice | Δ 3D | 3D esophagus | 3D heart | 3D trachea | 3D aorta | Idea |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| current | holdout | 1 |  | 0.786 |  | 0.605 |  | 0.264 | 0.878 | 0.582 | 0.697 |  |
-| no_hu_window | holdout | 1 | Elena | 0.692 | -0.094 | 0.456 | -0.149 | 0.234 | 0.700 | 0.509 | 0.379 | Does HU windowing add value? This run disables the mediastinal HU window and falls back to legacy per-volume min-max intensity normalisation. Compare it against the baseline (current.yaml, which uses data.window [40, 400]). Same GT (watershed_refined), split (holdout), and seed (42), so the only variable is the intensity normalisation -> the Dice/HD95/NSD difference is the value of HU windowing.
+| current | holdout | 1 |  | 0.621 |  | 0.622 |  | 0.335 | 0.859 | 0.610 | 0.683 |  |
+| no_hu_window | holdout | 1 | Elena | 0.457 | -0.164 | 0.456 | -0.166 | 0.234 | 0.700 | 0.509 | 0.379 | Does HU windowing add value? This run disables the mediastinal HU window and falls back to legacy per-volume min-max intensity normalisation. Compare it against the baseline (current.yaml, which uses data.window [40, 400]). Same GT (watershed_refined), split (holdout), and seed (42), so the only variable is the intensity normalisation -> the Dice/HD95/NSD difference is the value of HU windowing.
  |
+| refined_window_resampled | holdout | 1 |  | 0.687 | +0.066 | 0.683 | +0.061 | 0.435 | 0.890 | 0.678 | 0.730 | Voxel-spacing resampling to 1.95/1.95/2.5 mm (crop/pad) vs per-slice resize. |
+
+3D boundary metrics at the best epoch, mean over the 4 organs (± std over runs). HD95/ASSD are in mm (lower is better); NSD is a fraction within 1 mm (higher is better). Δ is against `current` on the same split.
+
+| Experiment | Split | Runs | HD95 (mm) | Δ HD95 (mm) | ASSD (mm) | Δ ASSD (mm) | NSD@1mm | Δ NSD@1mm |
+|---|---|---|---|---|---|---|---|---|
+| current | holdout | 1 | 43.34 |  | 7.69 |  | 0.249 |  |
+| no_hu_window | holdout | 1 | 44.39 | +1.05 | 12.28 | +4.59 | 0.158 | -0.090 |
+| refined_window_resampled | holdout | 1 | 30.20 | -13.14 | 5.30 | -2.39 | 0.305 | +0.057 |
 
 ## Runs
 
-| Experiment | Run | 2D val Dice | 3D Dice | Best epoch | Minutes | Commit | Device |
-|---|---|---|---|---|---|---|---|
-| current | holdout-f0-s42 | 0.786 | 0.605 | 23 / 25 | 128.3 | 3415b80* | mps |
-| no_hu_window | holdout-f0-s42 | 0.692 | 0.456 | 23 / 25 | 132.2 | 3415b80* | mps |
+| Experiment | Run | 2D val Dice | 3D Dice | 3D HD95 | Best epoch | Minutes | Commit | Device |
+|---|---|---|---|---|---|---|---|---|
+| current | holdout-f0-s42 | 0.621 | 0.622 | 43.34 | 24 / 25 | 129.9 | 6849221* | mps |
+| no_hu_window | holdout-f0-s42 | 0.457 | 0.456 | 44.39 | 23 / 25 | 129.0 | 6849221* | mps |
+| refined_window_resampled | holdout-f0-s42 | 0.687 | 0.683 | 30.20 | 23 / 25 | 122.4 | 6849221* | mps |
 
 `*` = run made with uncommitted changes.

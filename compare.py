@@ -44,19 +44,22 @@ def build_report(runs: list[dict]) -> str:
     for s in runs:
         groups[(s["experiment"], s["split"])].append(s)
 
-    def dice_3d(s, organ=None):
-        m = s.get("metrics_3d", {}).get("dice")
+    def metric_3d(s, name, organ=None):
+        m = s.get("metrics_3d", {}).get(name)
         if m is None:
             return None
         return m["mean"] if organ is None else m["per_class"][organ]
 
-    def delta(key, value):
+    def dice_3d(s, organ=None):
+        return metric_3d(s, "dice", organ)
+
+    def delta(key, value, digits=3):
         reference = [value(s) for s in groups.get(("current", key[1]), [])]
         own = [value(s) for s in groups[key]]
         reference, own = [v for v in reference if v is not None], [v for v in own if v is not None]
         if key[0] == "current" or not reference or not own:
             return ""
-        return f"{np.mean(own) - np.mean(reference):+.3f}"
+        return f"{np.mean(own) - np.mean(reference):+.{digits}f}"
 
     header = ["Experiment", "Split", "Runs", "Owner", "2D val Dice", "Δ 2D", "3D Dice", "Δ 3D"] \
         + [f"3D {o}" for o in ORGANS] + ["Idea"]
@@ -73,12 +76,34 @@ def build_report(runs: list[dict]) -> str:
         cells += [members[0].get("idea") or ""]
         lines.append("| " + " | ".join(cells) + " |")
 
-    header = ["Experiment", "Run", "2D val Dice", "3D Dice", "Best epoch", "Minutes", "Commit", "Device"]
+    # 3D boundary metrics (only shown if any run has them): HD95 / ASSD in mm
+    # (lower is better), NSD as a fraction (higher is better). digits: 2 for the
+    # mm distances, 3 for the NSD fraction.
+    boundary = [("hd95", "HD95 (mm)", 2), ("assd", "ASSD (mm)", 2), ("nsd", "NSD@1mm", 3)]
+    if any(metric_3d(s, name) is not None for s in runs for name, _, _ in boundary):
+        header = ["Experiment", "Split", "Runs"]
+        for _, label, _ in boundary:
+            header += [label, f"Δ {label}"]
+        lines += ["", "3D boundary metrics at the best epoch, mean over the 4 organs (± std over runs). "
+                  "HD95/ASSD are in mm (lower is better); NSD is a fraction within 1 mm (higher is better). "
+                  "Δ is against `current` on the same split.", "",
+                  "| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
+        for key in sorted(groups):
+            experiment, split = key
+            members = groups[key]
+            cells = [experiment, split, str(len(members))]
+            for name, _, digits in boundary:
+                cells += [fmt([metric_3d(s, name) for s in members], digits),
+                          delta(key, lambda s, n=name: metric_3d(s, n), digits)]
+            lines.append("| " + " | ".join(cells) + " |")
+
+    header = ["Experiment", "Run", "2D val Dice", "3D Dice", "3D HD95", "Best epoch", "Minutes", "Commit", "Device"]
     lines += ["", "## Runs", "", "| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
     for s in sorted(runs, key=lambda r: (r["experiment"], r["run"])):
         git = s.get("git") or {}
         commit = f"{git.get('commit')}{'*' if git.get('dirty') else ''}"
         lines.append("| " + " | ".join([s["experiment"], s["run"], fmt([s["val_dice_2d"]]), fmt([dice_3d(s)]),
+                                        fmt([metric_3d(s, "hd95")], 2),
                                         f"{s['best_epoch']} / {s['epochs']}", str(s["train_minutes"]),
                                         commit, s["device"]]) + " |")
     lines += ["", "`*` = run made with uncommitted changes.", ""]

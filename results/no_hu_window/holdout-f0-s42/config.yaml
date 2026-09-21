@@ -1,6 +1,7 @@
 data:
   gt: data/gt/watershed_refined
   window: null
+  target_spacing: null
   shape:
   - 256
   - 256
@@ -52,8 +53,8 @@ _run:
   overrides: []
   device: mps
   debug: false
-  started: '2026-09-19T00:46:47'
+  started: '2026-09-21T03:39:00'
   git:
-    commit: 3415b80
+    commit: '6849221'
     branch: Britt_metrics
     dirty: true

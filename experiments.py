@@ -155,3 +155,23 @@ register(Experiment(
         augment=False,
     ),
 ))
+
+# Refined GT fix + HU windowing + CE/Tversky combined loss.
+# Compared with refined_ce_dice, only Dice is replaced by asymmetric Tversky.
+register(Experiment(
+    name="refined_ce_tversky",
+    description=(
+        "Refined GT fix + HU mediastinal windowing + "
+        "cross-entropy/Tversky combined loss "
+        "(alpha=0.3, beta=0.7, weight=1.0)."
+    ),
+    slice=SliceConfig(
+        source_dir="data/gt/watershed_refined",
+        window=MEDIASTINAL,
+    ),
+    train=TrainConfig(
+        mode="full",
+        loss="ce_tversky",
+        augment=False,
+    ),
+))

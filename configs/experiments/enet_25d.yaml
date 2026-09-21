@@ -1,5 +1,5 @@
 base: ../current.yaml
-owner:
+owner: David
 idea: "2.5D input: the slice plus 1 neighbour above/below stacked as channels (3 -> ENet), everything else as current"
 
 input:

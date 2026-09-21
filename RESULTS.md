@@ -19,6 +19,14 @@ Dice at the best epoch (chosen on 2D val Dice), mean over the 4 organs (± std o
 | no_hu_window | holdout | 1 | 44.39 | +1.05 | 12.28 | +4.59 | 0.158 | -0.090 |
 | refined_window_resampled | holdout | 1 | 30.20 | -13.14 | 5.30 | -2.39 | 0.305 | +0.057 |
 
+Per-organ HD95 (mm) at the best epoch, mean ± std over runs (lower is better).
+
+| Experiment | Split | Runs | HD95 esophagus | HD95 heart | HD95 trachea | HD95 aorta |
+|---|---|---|---|---|---|---|
+| current | holdout | 1 | 59.80 | 67.00 | 24.94 | 21.62 |
+| no_hu_window | holdout | 1 | 36.75 | 49.10 | 39.69 | 52.02 |
+| refined_window_resampled | holdout | 1 | 22.70 | 44.11 | 34.15 | 19.83 |
+
 ## Runs
 
 | Experiment | Run | 2D val Dice | 3D Dice | 3D HD95 | Best epoch | Minutes | Commit | Device |

@@ -97,6 +97,18 @@ def build_report(runs: list[dict]) -> str:
                           delta(key, lambda s, n=name: metric_3d(s, n), digits)]
             lines.append("| " + " | ".join(cells) + " |")
 
+        # Per-organ HD95 (mm, lower is better): shows where boundary error
+        # concentrates (typically the thin, low-contrast esophagus).
+        header = ["Experiment", "Split", "Runs"] + [f"HD95 {o}" for o in ORGANS]
+        lines += ["", "Per-organ HD95 (mm) at the best epoch, mean ± std over runs (lower is better).", "",
+                  "| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
+        for key in sorted(groups):
+            experiment, split = key
+            members = groups[key]
+            cells = [experiment, split, str(len(members))]
+            cells += [fmt([metric_3d(s, "hd95", o) for s in members], 2) for o in ORGANS]
+            lines.append("| " + " | ".join(cells) + " |")
+
     header = ["Experiment", "Run", "2D val Dice", "3D Dice", "3D HD95", "Best epoch", "Minutes", "Commit", "Device"]
     lines += ["", "## Runs", "", "| " + " | ".join(header) + " |", "|" + "---|" * len(header)]
     for s in sorted(runs, key=lambda r: (r["experiment"], r["run"])):

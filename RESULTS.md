@@ -12,7 +12,9 @@ Dice at the best epoch (chosen on 2D val Dice), mean over the 4 organs (± std o
 | enet_tf_bottleneck | holdout | 3 | Junis | 0.734 ± 0.026 | +0.015 | 0.434 ± 0.054 | -0.135 | 0.099 ± 0.140 | 0.885 ± 0.004 | 0.050 ± 0.070 | 0.703 ± 0.028 | transformer at the ENet bottleneck (baseline placement) |
 | enet_tf_bottleneck_2layer | holdout | 3 | Junix | 0.798 ± 0.017 | +0.080 | 0.632 ± 0.047 | +0.063 | 0.407 ± 0.041 | 0.870 ± 0.021 | 0.532 ± 0.112 | 0.717 ± 0.015 | same as enet_tf_bottleneck, but 2 stacked transformer layers instead of 1 to check if  depth helps |
 | enet_tf_bottleneck_posembed | holdout | 3 | Junis | 0.751 ± 0.036 | +0.032 | 0.522 ± 0.097 | -0.047 | 0.122 ± 0.172 | 0.879 ± 0.012 | 0.380 ± 0.270 | 0.706 ± 0.011 | same placement, ablates sinusoidal positional embedding |
+| enet_tf_stage1 | holdout | 1 | Junis | 0.680 | -0.038 | 0.676 | +0.108 | 0.425 | 0.885 | 0.675 | 0.721 | transformer after the first bottleneck stack |
 | enet_tf_stage2 | holdout | 3 |  | 0.809 ± 0.002 | +0.090 | 0.666 ± 0.013 | +0.098 | 0.402 ± 0.041 | 0.889 ± 0.008 | 0.667 ± 0.021 | 0.707 ± 0.004 | transformer earlier, end of stage2 (H/8, K*8 channels) |
+| enet_tf_stage2_2layer | holdout | 3 | Junis | 0.772 ± 0.062 | +0.053 | 0.573 ± 0.146 | +0.004 | 0.272 ± 0.206 | 0.891 ± 0.008 | 0.437 ± 0.312 | 0.693 ± 0.068 | combines the two individual wins: stage2 placement + 2 stacked transformer layers |
 | no-augmentation | holdout | 1 | Githa | 0.773 | +0.055 | 0.609 | +0.040 | 0.331 | 0.868 | 0.609 | 0.628 | Current settings to compare with augmented data. |
 | no_hu_window | holdout | 1 | Elena | 0.457 | -0.261 | 0.456 | -0.113 | 0.234 | 0.700 | 0.509 | 0.379 | Does HU windowing add value? This run disables the mediastinal HU window and falls back to legacy per-volume min-max intensity normalisation. Compare it against the baseline (current.yaml, which uses data.window [40, 400]). Same GT (watershed_refined), split (holdout), and seed (42), so the only variable is the intensity normalisation -> the Dice/HD95/NSD difference is the value of HU windowing.
  |
@@ -28,7 +30,9 @@ Dice at the best epoch (chosen on 2D val Dice), mean over the 4 organs (± std o
 | enet_tf_bottleneck | holdout | 3 |  |  |  |  |  |  |
 | enet_tf_bottleneck_2layer | holdout | 3 |  |  |  |  |  |  |
 | enet_tf_bottleneck_posembed | holdout | 3 |  |  |  |  |  |  |
+| enet_tf_stage1 | holdout | 1 | 28.36 | -14.98 | 5.29 | -2.40 | 0.312 | +0.064 |
 | enet_tf_stage2 | holdout | 3 |  |  |  |  |  |  |
+| enet_tf_stage2_2layer | holdout | 3 |  |  |  |  |  |  |
 | no-augmentation | holdout | 1 |  |  |  |  |  |  |
 | no_hu_window | holdout | 1 | 44.39 | +1.05 | 12.28 | +4.59 | 0.158 | -0.090 |
 | refined_window_resampled | holdout | 1 | 30.20 | -13.14 | 5.30 | -2.39 | 0.305 | +0.057 |
@@ -43,7 +47,9 @@ Per-organ HD95 (mm) at the best epoch, mean ± std over runs (lower is better).
 | enet_tf_bottleneck | holdout | 3 |  |  |  |  |
 | enet_tf_bottleneck_2layer | holdout | 3 |  |  |  |  |
 | enet_tf_bottleneck_posembed | holdout | 3 |  |  |  |  |
+| enet_tf_stage1 | holdout | 1 | 37.32 | 13.66 | 40.73 | 21.72 |
 | enet_tf_stage2 | holdout | 3 |  |  |  |  |
+| enet_tf_stage2_2layer | holdout | 3 |  |  |  |  |
 | no-augmentation | holdout | 1 |  |  |  |  |
 | no_hu_window | holdout | 1 | 36.75 | 49.10 | 39.69 | 52.02 |
 | refined_window_resampled | holdout | 1 | 22.70 | 44.11 | 34.15 | 19.83 |
@@ -66,9 +72,13 @@ Per-organ HD95 (mm) at the best epoch, mean ± std over runs (lower is better).
 | enet_tf_bottleneck_posembed | holdout-f0-s42 | 0.802 | 0.636 |  | 20 / 25 | 61.3 | ce978f2* | cuda |
 | enet_tf_bottleneck_posembed | holdout-f0-s43 | 0.727 | 0.400 |  | 21 / 25 | 61.3 | ce978f2* | cuda |
 | enet_tf_bottleneck_posembed | holdout-f0-s44 | 0.723 | 0.529 |  | 24 / 25 | 57.9 | ce978f2* | cuda |
+| enet_tf_stage1 | holdout-f0-s42 | 0.680 | 0.676 | 28.36 | 24 / 25 | 50.5 | 636a87a* | cuda |
 | enet_tf_stage2 | holdout-f0-s42 | 0.811 | 0.671 |  | 24 / 25 | 59.6 | ce978f2* | cuda |
 | enet_tf_stage2 | holdout-f0-s43 | 0.809 | 0.679 |  | 24 / 25 | 58.5 | ce978f2* | cuda |
 | enet_tf_stage2 | holdout-f0-s44 | 0.806 | 0.649 |  | 24 / 25 | 60.5 | ce978f2* | cuda |
+| enet_tf_stage2_2layer | holdout-f0-s42 | 0.803 | 0.636 |  | 21 / 25 | 52.9 | da026c9* | cuda |
+| enet_tf_stage2_2layer | holdout-f0-s43 | 0.828 | 0.713 |  | 23 / 25 | 54.4 | da026c9* | cuda |
+| enet_tf_stage2_2layer | holdout-f0-s44 | 0.685 | 0.371 |  | 23 / 25 | 54.6 | da026c9* | cuda |
 | no-augmentation | holdout-f0-s42 | 0.773 | 0.609 |  | 24 / 25 | 59.3 | e974bc0* | cuda |
 | no_hu_window | holdout-f0-s42 | 0.457 | 0.456 | 44.39 | 23 / 25 | 129.0 | 6849221* | mps |
 | refined_window_resampled | holdout-f0-s42 | 0.687 | 0.683 | 30.20 | 23 / 25 | 122.4 | 6849221* | mps |

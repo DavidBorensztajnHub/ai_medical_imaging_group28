@@ -1,0 +1,11 @@
+# Boundary-aware training experiment.
+# Starts from the current project configuration.
+# Only the boundary regularizer is changed here.
+
+base: ../current.yaml
+
+# Add a differentiable boundary penalty to the CE loss.
+# The weight controls how strongly the boundary term contributes.
+regularizers:
+  - name: boundary
+    weight: 0.1

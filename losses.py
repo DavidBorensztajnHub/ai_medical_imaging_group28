@@ -171,6 +171,53 @@ class CrossEntropyDice():
     def __call__(self, pred_softmax, weak_target):
         cross_entropy_loss = self.cross_entropy(pred_softmax, weak_target)
         dice_loss = self.dice(pred_softmax, weak_target)
-
         return cross_entropy_loss + self.dice_weight * dice_loss
+
+class FocalLoss():
+    """Focal loss: down-weights easy examples via (1 - p_t)^gamma.
+    Lin et al., Focal Loss for Dense Object Detection, ICCV 2017.
+    gamma=0 reduces to standard cross-entropy.
+    """
+    def __init__(self, **kwargs):
+        self.idk = kwargs['idk']
+        self.gamma = kwargs.get('gamma', 2.0)
+        print(f"Initialized {self.__class__.__name__} with {kwargs}")
+
+    def __call__(self, pred_softmax, weak_target):
+        assert pred_softmax.shape == weak_target.shape
+        assert simplex(pred_softmax)
+        assert sset(weak_target, [0, 1])
+
+        probs = pred_softmax[:, self.idk, ...]
+        mask = weak_target[:, self.idk, ...].float()
+
+        log_p = (probs + 1e-10).log()
+        focal_weight = (1.0 - probs) ** self.gamma
+
+        loss = -einsum("bkwh,bkwh->", mask * focal_weight, log_p)
+        loss /= mask.sum() + 1e-10
+
+        return loss
+
+
+class FocalDice():
+    """Focal loss + Dice loss — pixel-level hard-example mining combined with overlap supervision."""
+    def __init__(self, **kwargs):
+        self.idk = kwargs['idk']
+        self.gamma = kwargs.get('gamma', 2.0)
+        self.dice_weight = kwargs.get('dice_weight', 1.0)
+
+        self.focal = FocalLoss(idk=self.idk, gamma=self.gamma)
+        self.dice = DiceLoss(idk=self.idk)
+
+        print(
+            f"Initialized {self.__class__.__name__} with "
+            f"idk={self.idk}, gamma={self.gamma}, dice_weight={self.dice_weight}"
+        )
+
+    def __call__(self, pred_softmax, weak_target):
+        focal_loss = self.focal(pred_softmax, weak_target)
+        dice_loss = self.dice(pred_softmax, weak_target)
+        return focal_loss + self.dice_weight * dice_loss
+
 

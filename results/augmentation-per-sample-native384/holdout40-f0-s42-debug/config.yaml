@@ -61,10 +61,10 @@ experiment: augmentation-per-sample-native384
 _run:
   config_file: configs/experiments/augmentation-per-sample-native384.yaml
   overrides: []
-  device: cuda
-  debug: false
-  started: '2026-10-05T14:55:10'
+  device: mps
+  debug: true
+  started: '2026-10-04T21:53:41'
   git:
-    commit: a5cca05
+    commit: df2a4ff
     branch: master
     dirty: true

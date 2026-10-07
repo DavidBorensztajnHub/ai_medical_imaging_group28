@@ -3,7 +3,9 @@ data:
   window:
   - 40
   - 400
-  extra_windows: []
+  extra_windows:
+  - - -600
+    - 1500
   target_spacing:
   - 0.98
   - 0.98
@@ -14,7 +16,7 @@ data:
   split: holdout40
   fold: 0
 input:
-  context_slices: 0
+  context_slices: 1
 model:
   name: enet
   params:
@@ -33,13 +35,15 @@ optimizer:
 scheduler:
   name: none
 augment:
-- name: combined
-  per_sample: true
+- combined
 train:
   epochs: 25
   batch_size: 8
   seed: 42
   num_workers: 5
+  early_stopping:
+    patience: null
+    min_delta: 0.0
 eval:
   metrics_3d:
   - dice
@@ -47,6 +51,7 @@ eval:
   - hd95
   - assd
   - nsd
+  - nsd3
   postprocess:
   - name: largest_cc
     min_fraction: 0.1
@@ -54,17 +59,19 @@ wandb:
   enabled: true
   entity: ai4migroup28
   project: ai4mi-segthor
-owner: Githa
-idea: Same as augmentation-native384, but with an independent augmentation draw per
-  slice instead of one per batch.
-experiment: augmentation-per-sample-native384
+owner: David
+idea: 2.5D input (1 neighbour slice above/below) plus the lung window [-600, 1500]
+  as extra channel per slice (6 input channels). Only the input differs from augmentation-native384
+  (seeds 42, 43).
+experiment: enet_25d_lung
 _run:
-  config_file: configs/experiments/augmentation-per-sample-native384.yaml
-  overrides: []
-  device: cuda
+  config_file: configs/experiments/enet_25d_lung.yaml
+  overrides:
+  - train.seed=42
+  device: mps
   debug: false
-  started: '2026-10-05T14:55:10'
+  started: '2026-10-06T19:40:00'
   git:
-    commit: a5cca05
+    commit: fa66df6
     branch: master
     dirty: true

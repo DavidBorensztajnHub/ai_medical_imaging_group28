@@ -1,0 +1,11 @@
+# combo_core_ce_k16 (the best run so far: 0.890 post-processed Dice, 2 seeds) trained for 50 epochs with
+# cosine lr decay (5e-4 -> 0). With a constant lr, k16's val Dice still jumps 0.860-0.888 over the last
+# epochs, so the best epoch is a lucky peak; in combo_core_ce_cosine50 cosine made the last epochs flat.
+# ~430 s/epoch on gpu_mig -> ~6 h training: submit with sbatch --time=12:00:00.
+base: combo_core_ce_k16.yaml
+owner: Elena
+idea: "combo_core_ce_k16 (CE + Dice, weighted sampler, ENet kernels 16) for 50 epochs with cosine lr decay. Compare against combo_core_ce_k16 (25 epochs, constant lr) and combo_core_ce_cosine50 (kernels 8)."
+
+scheduler: {name: cosine}
+train:
+  epochs: 50

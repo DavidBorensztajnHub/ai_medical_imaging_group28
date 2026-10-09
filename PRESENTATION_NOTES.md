@@ -158,12 +158,16 @@ touching organs count) or on the merged foreground.
   - per organ, weight 5: 0.868 (+0.005); raw HD95 13.9 → 8.7 mm, but **after** post-processing
     9.6 vs 8.4 mm.
 - In the combination (`combo_full` vs `combo_cosine`, weight 0.1): −0.003 Dice, esophagus −0.013,
-  HD95 8.1 → 8.8. **Dropped.**
+  HD95 8.1 → 8.8. **Dropped** (see also weight 5 below).
 - **Why it doesn't help us:** its main effect is removing stray blobs, which the CC post-processing
   already does. At weight 0.1 its gradient is too small next to CE to change anything.
 - Merged-foreground variant collapses at weight 5 (0.703 on the old pipeline): it ignores the boundaries
   between touching organs, which is exactly where the esophagus errors are.
-- Pending: `combo_core_ce_boundary_w5` (weight 5 on top of CE + Dice + sampler).
+- Weight 5 on top of CE + Dice + sampler (`combo_core_ce_boundary_w5`, seed 42 only, from Britt's
+  RESULTS.md): 0.873 vs 0.882, esophagus 0.753 vs 0.768, HD95 8.2 vs 8.0, NSD 0.601 vs 0.621 — worse on
+  every metric, by more than the seed spread of `combo_core_ce` (0.882 / 0.879). Best epoch 13 of 25
+  (vs 20–23): validation stopped improving halfway, so the term seems to work against the Dice term late
+  in training. No second seed needed.
 
 ### 2i. Training schedule: cosine lr and longer training (Elena)
 Constant lr 5e-4 for 25 epochs had two problems: every run peaks at epoch 20–24 (still learning), and
@@ -220,7 +224,7 @@ val Dice jumps ±0.005–0.03 between the last epochs, so the best epoch is part
 | Focal + Dice | Puck | done, 2 seeds | tie with CE + Dice; not kept |
 | CE + Tversky | Puck | done, 2 seeds | dropped |
 | Weighted slice sampler | David | done, 2 seeds | **kept** (in combination) |
-| Boundary regularizer | Britt | done, 2 seeds (w 0.1, 5) + in combo | dropped; w5 in combo pending |
+| Boundary regularizer | Britt | done, 2 seeds (w 0.1, 5) + in combo (w 0.1, w 5) | dropped |
 | Cosine lr, 25 epochs | Elena | done, 2 seeds | dropped |
 | Cosine lr, 50 epochs | Elena | done, 2 seeds | **kept candidate** (best HD95, stable) |
 | ENet kernels 16 | Elena | done, 2 seeds | **kept candidate** (best Dice) |

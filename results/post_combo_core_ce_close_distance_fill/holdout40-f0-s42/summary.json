@@ -1,0 +1,405 @@
+{
+  "experiment": "post_combo_core_ce_close_distance_fill",
+  "run": "holdout40-f0-s42",
+  "owner": "Elena",
+  "idea": "Post-processing only (no training): post_native_close_distance_fill on combo_core_ce's predictions. Close the esophagus along z (radius 5 mm), keep per organ the largest component plus everything within 20 mm of it, then fill holes per axial slice. On spacing_native_384 this beat min_fraction 0.1 on both seeds (HD95 12.5 -> 10.3 mm, ASSD 2.44 -> 2.17 mm, Dice +0.003). Compare against combo_core_ce's metrics_3d_post (min_fraction 0.1).",
+  "split": "holdout40",
+  "fold": 0,
+  "seed": 42,
+  "epochs": 25,
+  "debug": false,
+  "device": "cuda",
+  "git": {
+    "commit": "769c706",
+    "branch": "master",
+    "dirty": true
+  },
+  "best_epoch": 20,
+  "epochs_run": 25,
+  "stopped_early": false,
+  "val_dice_2d": 0.8808,
+  "val_dice_2d_per_class": {
+    "esophagus": 0.7704,
+    "heart": 0.9366,
+    "trachea": 0.8891,
+    "aorta": 0.9272
+  },
+  "train_minutes": 212.6,
+  "metrics_3d": {
+    "dice": {
+      "mean": 0.8835,
+      "per_class": {
+        "esophagus": 0.7767,
+        "heart": 0.9374,
+        "trachea": 0.8904,
+        "aorta": 0.9295
+      },
+      "per_patient": {
+        "Patient_01": {
+          "esophagus": 0.855,
+          "heart": 0.9521,
+          "trachea": 0.9173,
+          "aorta": 0.9366
+        },
+        "Patient_13": {
+          "esophagus": 0.7729,
+          "heart": 0.9486,
+          "trachea": 0.9172,
+          "aorta": 0.9363
+        },
+        "Patient_16": {
+          "esophagus": 0.81,
+          "heart": 0.9417,
+          "trachea": 0.9075,
+          "aorta": 0.9464
+        },
+        "Patient_22": {
+          "esophagus": 0.6635,
+          "heart": 0.9286,
+          "trachea": 0.896,
+          "aorta": 0.9356
+        },
+        "Patient_28": {
+          "esophagus": 0.7469,
+          "heart": 0.898,
+          "trachea": 0.8686,
+          "aorta": 0.9103
+        },
+        "Patient_30": {
+          "esophagus": 0.7426,
+          "heart": 0.9266,
+          "trachea": 0.8344,
+          "aorta": 0.918
+        },
+        "Patient_35": {
+          "esophagus": 0.793,
+          "heart": 0.9523,
+          "trachea": 0.9169,
+          "aorta": 0.9314
+        },
+        "Patient_39": {
+          "esophagus": 0.83,
+          "heart": 0.9516,
+          "trachea": 0.8653,
+          "aorta": 0.9216
+        }
+      }
+    },
+    "hd": {
+      "mean": 18.4213,
+      "per_class": {
+        "esophagus": 16.445,
+        "heart": 21.4259,
+        "trachea": 18.1431,
+        "aorta": 17.6711
+      },
+      "per_patient": {
+        "Patient_01": {
+          "esophagus": 13.2827,
+          "heart": 13.2507,
+          "trachea": 21.4399,
+          "aorta": 8.2976
+        },
+        "Patient_13": {
+          "esophagus": 12.5135,
+          "heart": 10.6018,
+          "trachea": 20.0182,
+          "aorta": 18.0265
+        },
+        "Patient_16": {
+          "esophagus": 13.2461,
+          "heart": 15.3545,
+          "trachea": 22.6207,
+          "aorta": 26.3591
+        },
+        "Patient_22": {
+          "esophagus": 14.6809,
+          "heart": 36.9272,
+          "trachea": 21.484,
+          "aorta": 30.4126
+        },
+        "Patient_28": {
+          "esophagus": 16.6262,
+          "heart": 37.4672,
+          "trachea": 22.8783,
+          "aorta": 13.5612
+        },
+        "Patient_30": {
+          "esophagus": 25.1494,
+          "heart": 24.7136,
+          "trachea": 17.7632,
+          "aorta": 10.0949
+        },
+        "Patient_35": {
+          "esophagus": 18.218,
+          "heart": 12.6077,
+          "trachea": 4.7636,
+          "aorta": 11.726
+        },
+        "Patient_39": {
+          "esophagus": 17.8435,
+          "heart": 20.4844,
+          "trachea": 14.1769,
+          "aorta": 22.8906
+        }
+      }
+    },
+    "hd95": {
+      "mean": 7.6464,
+      "per_class": {
+        "esophagus": 7.9588,
+        "heart": 8.9975,
+        "trachea": 8.1224,
+        "aorta": 5.507
+      },
+      "per_patient": {
+        "Patient_01": {
+          "esophagus": 4.6818,
+          "heart": 6.0,
+          "trachea": 10.7196,
+          "aorta": 3.5473
+        },
+        "Patient_13": {
+          "esophagus": 6.0353,
+          "heart": 4.1175,
+          "trachea": 8.0,
+          "aorta": 3.9062
+        },
+        "Patient_16": {
+          "esophagus": 7.5,
+          "heart": 6.1154,
+          "trachea": 8.5755,
+          "aorta": 2.5
+        },
+        "Patient_22": {
+          "esophagus": 7.8462,
+          "heart": 18.3215,
+          "trachea": 12.0499,
+          "aorta": 5.0945
+        },
+        "Patient_28": {
+          "esophagus": 10.1951,
+          "heart": 13.9426,
+          "trachea": 7.7027,
+          "aorta": 7.7027
+        },
+        "Patient_30": {
+          "esophagus": 11.9028,
+          "heart": 12.6893,
+          "trachea": 9.2541,
+          "aorta": 5.0
+        },
+        "Patient_35": {
+          "esophagus": 7.1225,
+          "heart": 5.0345,
+          "trachea": 2.0,
+          "aorta": 3.6532
+        },
+        "Patient_39": {
+          "esophagus": 8.3864,
+          "heart": 5.759,
+          "trachea": 6.6771,
+          "aorta": 12.6518
+        }
+      }
+    },
+    "assd": {
+      "mean": 1.5748,
+      "per_class": {
+        "esophagus": 1.6384,
+        "heart": 2.3785,
+        "trachea": 1.1809,
+        "aorta": 1.1015
+      },
+      "per_patient": {
+        "Patient_01": {
+          "esophagus": 1.1668,
+          "heart": 1.581,
+          "trachea": 1.2962,
+          "aorta": 0.9338
+        },
+        "Patient_13": {
+          "esophagus": 1.3891,
+          "heart": 1.6869,
+          "trachea": 0.8246,
+          "aorta": 1.1692
+        },
+        "Patient_16": {
+          "esophagus": 1.4419,
+          "heart": 1.9502,
+          "trachea": 1.0613,
+          "aorta": 0.8051
+        },
+        "Patient_22": {
+          "esophagus": 2.0012,
+          "heart": 3.5351,
+          "trachea": 1.3655,
+          "aorta": 1.0598
+        },
+        "Patient_28": {
+          "esophagus": 1.9104,
+          "heart": 4.295,
+          "trachea": 1.5079,
+          "aorta": 1.4782
+        },
+        "Patient_30": {
+          "esophagus": 2.2783,
+          "heart": 2.7729,
+          "trachea": 1.5063,
+          "aorta": 1.1321
+        },
+        "Patient_35": {
+          "esophagus": 1.3744,
+          "heart": 1.6432,
+          "trachea": 0.6728,
+          "aorta": 0.922
+        },
+        "Patient_39": {
+          "esophagus": 1.545,
+          "heart": 1.5636,
+          "trachea": 1.2125,
+          "aorta": 1.3119
+        }
+      }
+    },
+    "nsd": {
+      "mean": 0.6222,
+      "per_class": {
+        "esophagus": 0.5978,
+        "heart": 0.4066,
+        "trachea": 0.7669,
+        "aorta": 0.7174
+      },
+      "per_patient": {
+        "Patient_01": {
+          "esophagus": 0.7096,
+          "heart": 0.5075,
+          "trachea": 0.7994,
+          "aorta": 0.7476
+        },
+        "Patient_13": {
+          "esophagus": 0.6534,
+          "heart": 0.4111,
+          "trachea": 0.883,
+          "aorta": 0.7134
+        },
+        "Patient_16": {
+          "esophagus": 0.6962,
+          "heart": 0.4386,
+          "trachea": 0.8461,
+          "aorta": 0.8139
+        },
+        "Patient_22": {
+          "esophagus": 0.5301,
+          "heart": 0.3685,
+          "trachea": 0.8205,
+          "aorta": 0.7895
+        },
+        "Patient_28": {
+          "esophagus": 0.5709,
+          "heart": 0.2669,
+          "trachea": 0.7778,
+          "aorta": 0.6723
+        },
+        "Patient_30": {
+          "esophagus": 0.542,
+          "heart": 0.4238,
+          "trachea": 0.6488,
+          "aorta": 0.6912
+        },
+        "Patient_35": {
+          "esophagus": 0.3958,
+          "heart": 0.3564,
+          "trachea": 0.5603,
+          "aorta": 0.5188
+        },
+        "Patient_39": {
+          "esophagus": 0.6843,
+          "heart": 0.4798,
+          "trachea": 0.799,
+          "aorta": 0.7928
+        }
+      }
+    },
+    "nsd3": {
+      "mean": 0.8774,
+      "per_class": {
+        "esophagus": 0.8604,
+        "heart": 0.7869,
+        "trachea": 0.9193,
+        "aorta": 0.9431
+      },
+      "per_patient": {
+        "Patient_01": {
+          "esophagus": 0.9118,
+          "heart": 0.8602,
+          "trachea": 0.9053,
+          "aorta": 0.9439
+        },
+        "Patient_13": {
+          "esophagus": 0.898,
+          "heart": 0.8615,
+          "trachea": 0.9268,
+          "aorta": 0.9636
+        },
+        "Patient_16": {
+          "esophagus": 0.8706,
+          "heart": 0.8251,
+          "trachea": 0.9369,
+          "aorta": 0.9839
+        },
+        "Patient_22": {
+          "esophagus": 0.7976,
+          "heart": 0.7059,
+          "trachea": 0.8862,
+          "aorta": 0.9573
+        },
+        "Patient_28": {
+          "esophagus": 0.8312,
+          "heart": 0.5798,
+          "trachea": 0.887,
+          "aorta": 0.8787
+        },
+        "Patient_30": {
+          "esophagus": 0.7819,
+          "heart": 0.7483,
+          "trachea": 0.905,
+          "aorta": 0.9286
+        },
+        "Patient_35": {
+          "esophagus": 0.915,
+          "heart": 0.8308,
+          "trachea": 0.9968,
+          "aorta": 0.9506
+        },
+        "Patient_39": {
+          "esophagus": 0.8769,
+          "heart": 0.8833,
+          "trachea": 0.9102,
+          "aorta": 0.9385
+        }
+      }
+    }
+  },
+  "postprocess": [
+    {
+      "name": "closing",
+      "radius_mm": 5,
+      "axis": "z",
+      "skip": [
+        "heart",
+        "trachea",
+        "aorta"
+      ]
+    },
+    {
+      "name": "largest_cc",
+      "max_distance_mm": 20
+    },
+    {
+      "name": "fill_holes",
+      "per_slice": true
+    }
+  ],
+  "source_run": "results/combo_core_ce/holdout40-f0-s42"
+}

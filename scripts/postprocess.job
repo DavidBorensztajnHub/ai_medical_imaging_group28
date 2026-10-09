@@ -1,0 +1,35 @@
+#!/bin/bash
+#SBATCH --partition=gpu_mig
+#SBATCH --gpus=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=9
+#SBATCH --time=01:00:00
+#SBATCH --output=slurm_logs/%x_%j.out
+#SBATCH --error=slurm_logs/%x_%j.err
+#SBATCH --job-name=postprocess
+
+# Usage: sbatch scripts/postprocess.job configs/experiments/post_<name>.yaml --set train.seed=42 [--overwrite]
+# Rescores a finished run's saved predictions with other post-processing (postprocess_run.py), no training.
+# Runs as a job because the login nodes (int*) kill it: the 3D evaluation of 8 full-resolution volumes
+# needs more CPU time and memory than they allow ("Terminated"). It needs no GPU, but gpu_mig is the
+# partition our budget is known to work on; it only takes a few minutes, so it is billed little.
+# Create slurm_logs/ first (mkdir -p slurm_logs).
+
+set -euo pipefail
+
+START_TIME=$(date +%s)
+trap 'END_TIME=$(date +%s); echo "total elapsed time: $((END_TIME - START_TIME)) seconds"' EXIT
+
+PROJECT_DIR="$HOME/ai_medical_imaging_group28/"
+VENV_DIR="${PROJECT_DIR}/ai4mi"
+
+module purge
+module load 2025
+module load Python-bundle-PyPI/2025.04-GCCcore-14.2.0
+
+source "${VENV_DIR}/bin/activate"
+cd "${PROJECT_DIR}"
+
+python postprocess_run.py --config "$@"
+
+echo "done"

@@ -1,0 +1,13 @@
+base: ../current.yaml
+owner: Elena
+idea: >-
+  Post-processing only (no training): post_combo_core_ce_close_lcc on combo_core_ce_k16's predictions (the best
+  model so far). Close the esophagus along z (radius 5 mm), then largest_cc with min_fraction 0.1. Compare against
+  combo_core_ce_k16's metrics_3d_post (min_fraction 0.1 only).
+
+source: combo_core_ce_k16   # experiment whose saved predictions are rescored (postprocess_run.py)
+
+eval:
+  postprocess:
+    - {name: closing, radius_mm: 5, axis: z, skip: [heart, trachea, aorta]}
+    - {name: largest_cc, min_fraction: 0.1}

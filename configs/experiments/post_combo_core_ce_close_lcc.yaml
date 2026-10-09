@@ -1,0 +1,15 @@
+base: ../current.yaml
+owner: Elena
+idea: >-
+  Post-processing only (no training): on combo_core_ce's predictions, close the esophagus along z (radius 5 mm),
+  then largest_cc with min_fraction 0.1. close_distance_fill on the same runs was neutral for Dice and worse for
+  HD95 (8.45 -> 8.89 mm, aorta 6.1 -> 9.4 mm in seed 43): its 20 mm distance rule keeps false positives next to
+  the organs. This keeps its esophagus closing but the current min_fraction rule. Compare against
+  combo_core_ce's metrics_3d_post (min_fraction 0.1 only).
+
+source: combo_core_ce   # experiment whose saved predictions are rescored (postprocess_run.py)
+
+eval:
+  postprocess:
+    - {name: closing, radius_mm: 5, axis: z, skip: [heart, trachea, aorta]}
+    - {name: largest_cc, min_fraction: 0.1}

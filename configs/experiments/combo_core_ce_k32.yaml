@@ -1,0 +1,9 @@
+# Next width step after combo_core_ce_k16 (kernels 8 -> 16 gave +0.010 Dice, +0.025 esophagus, 2 seeds,
+# with no extra training time on gpu_mig: the A100 was underused by the small network).
+# kernels 32: ~4x the parameters of k16; check the GPU memory and the time per epoch in log.csv.
+base: combo_core_ce.yaml
+owner: Elena
+idea: "combo_core_ce (CE + Dice, weighted sampler) with ENet kernels 32. Only the network width differs from combo_core_ce and combo_core_ce_k16."
+
+model:
+  params: {kernels: 32}

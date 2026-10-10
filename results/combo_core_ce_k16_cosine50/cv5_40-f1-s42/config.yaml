@@ -1,0 +1,82 @@
+data:
+  gt: data/segthor_full
+  window:
+  - 40
+  - 400
+  extra_windows: []
+  target_spacing:
+  - 0.98
+  - 0.98
+  - 2.0
+  shape:
+  - 384
+  - 384
+  split: cv5_40
+  fold: 1
+input:
+  context_slices: 0
+model:
+  name: enet
+  params:
+    kernels: 16
+    factor: 2
+  pretrained: false
+loss:
+  name: ce_dice
+  dice_weight: 1.0
+  include_background: false
+regularizers: []
+optimizer:
+  name: adam
+  lr: 0.0005
+  betas:
+  - 0.9
+  - 0.999
+scheduler:
+  name: cosine
+augment:
+- combined
+train:
+  epochs: 50
+  batch_size: 8
+  seed: 42
+  num_workers: 5
+  early_stopping:
+    patience: null
+    min_delta: 0.0
+  sampler:
+    empty_weight: 0.7
+    class_weights:
+      esophagus: 2.0
+eval:
+  metrics_3d:
+  - dice
+  - hd
+  - hd95
+  - assd
+  - nsd
+  - nsd3
+  postprocess:
+  - name: largest_cc
+    min_fraction: 0.1
+wandb:
+  enabled: true
+  entity: ai4migroup28
+  project: ai4mi-segthor
+owner: Elena
+idea: combo_core_ce_k16 (CE + Dice, weighted sampler, ENet kernels 16) for 50 epochs
+  with cosine lr decay. Compare against combo_core_ce_k16 (25 epochs, constant lr)
+  and combo_core_ce_cosine50 (kernels 8).
+experiment: combo_core_ce_k16_cosine50
+_run:
+  config_file: configs/experiments/combo_core_ce_k16_cosine50.yaml
+  overrides:
+  - data.split=cv5_40
+  - data.fold=1
+  device: cuda
+  debug: false
+  started: '2026-10-10T02:04:53'
+  git:
+    commit: e81e8b7
+    branch: ViT
+    dirty: true

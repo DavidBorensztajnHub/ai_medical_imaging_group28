@@ -33,10 +33,7 @@ Dice at the best epoch (chosen on 2D val Dice), mean over the 4 organs (± std o
 | enet_25d_metrics3d | holdout | 3 | David | 0.526 ± 0.098 | -0.193 | 0.524 ± 0.098 | -0.044 | 0.280 ± 0.202 | 0.880 ± 0.012 | 0.206 ± 0.292 | 0.731 ± 0.019 | 2.5D input (slice + 1 neighbour above/below stacked as channels, 3 -> ENet), identical to enet_25d but scored with the full 3D metric suite (dice, hd, hd95, assd, nsd) instead of 3D Dice alone |
 | enet_tf_bottleneck | holdout | 3 | Junis | 0.734 ± 0.026 | +0.015 | 0.434 ± 0.054 | -0.135 | 0.099 ± 0.140 | 0.885 ± 0.004 | 0.050 ± 0.070 | 0.703 ± 0.028 | transformer at the ENet bottleneck (baseline placement) |
 | enet_tf_bottleneck_2layer | holdout | 3 | Junix | 0.798 ± 0.017 | +0.080 | 0.632 ± 0.047 | +0.063 | 0.407 ± 0.041 | 0.870 ± 0.021 | 0.532 ± 0.112 | 0.717 ± 0.015 | same as enet_tf_bottleneck, but 2 stacked transformer layers instead of 1 to check if  depth helps |
-| enet_tf_bottleneck_2layer_nores | holdout | 3 | Junix | 0.798 ± 0.017 | +0.080 | 0.632 ± 0.047 | +0.063 | 0.407 ± 0.041 | 0.870 ± 0.021 | 0.532 ± 0.112 | 0.717 ± 0.015 | same as enet_tf_bottleneck, but 2 stacked transformer layers instead of 1 to check if  depth helps |
-| enet_tf_bottleneck_nores | holdout | 3 | Junis | 0.734 ± 0.026 | +0.015 | 0.434 ± 0.054 | -0.135 | 0.099 ± 0.140 | 0.885 ± 0.004 | 0.050 ± 0.070 | 0.703 ± 0.028 | transformer at the ENet bottleneck (baseline placement) |
 | enet_tf_bottleneck_posembed | holdout | 3 | Junis | 0.751 ± 0.036 | +0.032 | 0.522 ± 0.097 | -0.047 | 0.122 ± 0.172 | 0.879 ± 0.012 | 0.380 ± 0.270 | 0.706 ± 0.011 | same placement, ablates sinusoidal positional embedding |
-| enet_tf_bottleneck_posembed_nores | holdout | 3 | Junis | 0.751 ± 0.036 | +0.032 | 0.522 ± 0.097 | -0.047 | 0.122 ± 0.172 | 0.879 ± 0.012 | 0.380 ± 0.270 | 0.706 ± 0.011 | same placement, ablates sinusoidal positional embedding |
 | enet_tf_decoder1 | holdout | 3 | Junis | 0.629 ± 0.024 | -0.089 | 0.624 ± 0.023 | +0.056 | 0.223 ± 0.159 | 0.901 ± 0.015 | 0.634 ± 0.036 | 0.739 ± 0.021 | transformer after the first upsampling stack |
 | enet_tf_stage1 | holdout | 3 | Junis | 0.593 ± 0.137 | -0.125 | 0.590 ± 0.136 | +0.021 | 0.282 ± 0.200 | 0.884 ± 0.005 | 0.468 ± 0.331 | 0.725 ± 0.023 | transformer after the first bottleneck stack |
 | enet_tf_stage2 | holdout | 3 |  | 0.809 ± 0.002 | +0.090 | 0.666 ± 0.013 | +0.098 | 0.402 ± 0.041 | 0.889 ± 0.008 | 0.667 ± 0.021 | 0.707 ± 0.004 | transformer earlier, end of stage2 (H/8, K*8 channels) |
@@ -77,6 +74,11 @@ Dice at the best epoch (chosen on 2D val Dice), mean over the 4 organs (± std o
 | spacing_1.95_crop192 | holdout40 | 1 | Elena | 0.807 | +0.018 | 0.803 | +0.016 | 0.611 | 0.915 | 0.838 | 0.849 | Tight crop at the old resolution: 1.95 x 1.95 x 2.0 mm, center crop to 192x192 (same 375 mm field of view as spacing_native_384), to split that run's gain into crop vs resolution. |
 | spacing_1.95_z2 | holdout40 | 1 | Elena | 0.786 | -0.003 | 0.780 | -0.007 | 0.564 | 0.892 | 0.792 | 0.872 | Slice thickness only: resample z to 2.0 mm instead of 2.5 mm, in-plane unchanged (1.95 mm, 256x256), to separate the z effect from the in-plane resolution in the spacing experiments. |
 | spacing_native_384 | holdout40 | 2 | Elena | 0.835 ± 0.013 | +0.046 | 0.835 ± 0.013 | +0.048 | 0.659 ± 0.026 | 0.923 ± 0.002 | 0.861 ± 0.013 | 0.899 ± 0.013 | Native in-plane resolution: resample to 0.98 x 0.98 x 2.0 mm and center crop to 384x384 (vs 1.95 x 1.95 x 2.5 mm, 256x256), to see the thin esophagus and trachea better. |
+| tf_st2_2l_combo_core_ce_k32_res_nopos | holdout40 | 1 | Junis | 0.891 | +0.101 | 0.893 | +0.106 | 0.795 | 0.945 | 0.894 | 0.937 | stage 2 transformer with combo_core_ce (CE + Dice, weighted sampler) with ENet kernels 32. Only the network width differs from combo_core_ce and combo_core_ce_k16. Resampling and positional embeddings are on. |
+| tf_st2_combo_core_ce_k32_nores | holdout40 | 1 | Junis | 0.871 | +0.082 | 0.867 | +0.080 | 0.759 | 0.928 | 0.867 | 0.915 | stage 2 transformer with combo_core_ce (CE + Dice, weighted sampler) with ENet kernels 32. Only the network width differs from combo_core_ce and combo_core_ce_k16 and no resampling is used. |
+| tf_st2_combo_core_ce_k32_nores_pos | holdout40 | 1 | Junis | 0.871 | +0.082 | 0.867 | +0.080 | 0.763 | 0.935 | 0.856 | 0.914 | stage 2 transformer with no resampling but with posembed, combo_core_ce (CE + Dice, weighted sampler) with ENet kernels 32. Only the network width differs from combo_core_ce and combo_core_ce_k16 and no resampling is used. |
+| tf_st2_combo_core_ce_k32_res_nopos | holdout40 | 1 | Junis | 0.893 | +0.104 | 0.893 | +0.106 | 0.795 | 0.945 | 0.894 | 0.937 | stage 2 transformer with combo_core_ce (CE + Dice, weighted sampler) with ENet kernels 32. Only the network width differs from combo_core_ce and combo_core_ce_k16. Resampling and positional embeddings are on. |
+| tf_st2_combo_core_ce_k32_res_pos | holdout40 | 1 | Junis | 0.894 | +0.105 | 0.894 | +0.107 | 0.799 | 0.949 | 0.900 | 0.927 | stage 2 transformer with combo_core_ce (CE + Dice, weighted sampler) with ENet kernels 32. Only the network width differs from combo_core_ce and combo_core_ce_k16. Resampling and positional embeddings are on. |
 | window_narrow | holdout40 | 1 | Elena | 0.765 | -0.024 | 0.762 | -0.025 | 0.524 | 0.911 | 0.755 | 0.858 | Narrower soft-tissue window [40, 300] instead of [40, 400], for more contrast between the esophagus and the surrounding fat. |
 
 3D boundary metrics at the best epoch, mean over the 4 organs (± std over runs). HD95/ASSD are in mm (lower is better); NSD is the fraction of surface within 1 or 3 mm (higher is better). Δ is against `current` on the same split.
@@ -110,10 +112,7 @@ Dice at the best epoch (chosen on 2D val Dice), mean over the 4 organs (± std o
 | enet_25d_metrics3d | holdout | 3 | 30.99 ± 8.48 | -12.35 | 5.99 ± 1.24 | -1.70 | 0.294 ± 0.016 | +0.045 |  |  |
 | enet_tf_bottleneck | holdout | 3 | 20.55 | -22.79 | 6.24 | -1.45 | 0.208 | -0.041 |  |  |
 | enet_tf_bottleneck_2layer | holdout | 3 |  |  |  |  |  |  |  |  |
-| enet_tf_bottleneck_2layer_nores | holdout | 3 |  |  |  |  |  |  |  |  |
-| enet_tf_bottleneck_nores | holdout | 3 | 20.55 | -22.79 | 6.24 | -1.45 | 0.208 | -0.041 |  |  |
 | enet_tf_bottleneck_posembed | holdout | 3 |  |  |  |  |  |  |  |  |
-| enet_tf_bottleneck_posembed_nores | holdout | 3 |  |  |  |  |  |  |  |  |
 | enet_tf_decoder1 | holdout | 3 | 38.92 ± 21.81 | -4.42 | 5.74 ± 2.10 | -1.95 | 0.316 ± 0.048 | +0.067 |  |  |
 | enet_tf_stage1 | holdout | 3 | 35.66 ± 11.38 | -7.68 | 5.32 ± 0.64 | -2.37 | 0.304 ± 0.018 | +0.055 |  |  |
 | enet_tf_stage2 | holdout | 3 |  |  |  |  |  |  |  |  |
@@ -151,6 +150,11 @@ Dice at the best epoch (chosen on 2D val Dice), mean over the 4 organs (± std o
 | spacing_1.95_crop192 | holdout40 | 1 | 12.88 | -1.60 | 2.67 | -0.26 | 0.488 | +0.048 |  |  |
 | spacing_1.95_z2 | holdout40 | 1 | 13.22 | -1.26 | 3.00 | +0.08 | 0.460 | +0.020 |  |  |
 | spacing_native_384 | holdout40 | 2 | 21.21 ± 5.47 | +6.73 | 3.26 ± 0.67 | +0.33 | 0.534 ± 0.026 | +0.094 |  |  |
+| tf_st2_2l_combo_core_ce_k32_res_nopos | holdout40 | 1 | 8.13 | -6.35 | 1.68 | -1.25 | 0.648 | +0.208 | 0.884 |  |
+| tf_st2_combo_core_ce_k32_nores | holdout40 | 1 | 10.05 | -4.43 | 1.93 | -1.00 | 0.606 | +0.166 | 0.837 |  |
+| tf_st2_combo_core_ce_k32_nores_pos | holdout40 | 1 | 9.72 | -4.76 | 2.08 | -0.84 | 0.607 | +0.167 | 0.843 |  |
+| tf_st2_combo_core_ce_k32_res_nopos | holdout40 | 1 | 8.13 | -6.35 | 1.68 | -1.25 | 0.648 | +0.208 | 0.884 |  |
+| tf_st2_combo_core_ce_k32_res_pos | holdout40 | 1 | 15.55 | +1.07 | 1.78 | -1.14 | 0.653 | +0.213 | 0.887 |  |
 | window_narrow | holdout40 | 1 | 15.42 | +0.94 | 3.30 | +0.38 | 0.414 | -0.026 |  |  |
 
 Per-organ HD95 (mm) at the best epoch, mean ± std over runs (lower is better).
@@ -184,10 +188,7 @@ Per-organ HD95 (mm) at the best epoch, mean ± std over runs (lower is better).
 | enet_25d_metrics3d | holdout | 3 | nan ± nan | 24.44 ± 0.67 | nan ± nan | 20.65 ± 6.39 |
 | enet_tf_bottleneck | holdout | 3 | 22.07 | 12.41 | 30.70 | 17.03 |
 | enet_tf_bottleneck_2layer | holdout | 3 |  |  |  |  |
-| enet_tf_bottleneck_2layer_nores | holdout | 3 |  |  |  |  |
-| enet_tf_bottleneck_nores | holdout | 3 | 22.07 | 12.41 | 30.70 | 17.03 |
 | enet_tf_bottleneck_posembed | holdout | 3 |  |  |  |  |
-| enet_tf_bottleneck_posembed_nores | holdout | 3 |  |  |  |  |
 | enet_tf_decoder1 | holdout | 3 | nan ± nan | 25.86 ± 22.75 | 50.86 ± 30.98 | 50.76 ± 26.34 |
 | enet_tf_stage1 | holdout | 3 | nan ± nan | 48.64 ± 28.73 | nan ± nan | 19.94 ± 1.30 |
 | enet_tf_stage2 | holdout | 3 |  |  |  |  |
@@ -225,6 +226,11 @@ Per-organ HD95 (mm) at the best epoch, mean ± std over runs (lower is better).
 | spacing_1.95_crop192 | holdout40 | 1 | 10.59 | 10.72 | 9.71 | 20.50 |
 | spacing_1.95_z2 | holdout40 | 1 | 10.40 | 13.25 | 13.46 | 15.80 |
 | spacing_native_384 | holdout40 | 2 | 39.56 ± 30.24 | 15.70 ± 6.35 | 14.68 ± 0.32 | 14.91 ± 1.70 |
+| tf_st2_2l_combo_core_ce_k32_res_nopos | holdout40 | 1 | 7.65 | 6.37 | 7.77 | 10.75 |
+| tf_st2_combo_core_ce_k32_nores | holdout40 | 1 | 9.92 | 9.86 | 12.40 | 8.03 |
+| tf_st2_combo_core_ce_k32_nores_pos | holdout40 | 1 | 8.34 | 8.25 | 10.91 | 11.38 |
+| tf_st2_combo_core_ce_k32_res_nopos | holdout40 | 1 | 7.65 | 6.37 | 7.77 | 10.75 |
+| tf_st2_combo_core_ce_k32_res_pos | holdout40 | 1 | 7.81 | 6.76 | 38.47 | 9.18 |
 | window_narrow | holdout40 | 1 | 12.23 | 13.23 | 11.96 | 24.25 |
 
 Post-processing of the stitched 3D predictions: raw vs post-processed scores of the same runs (mean over the 4 organs). Δ = post - raw.
@@ -252,6 +258,11 @@ Post-processing of the stitched 3D predictions: raw vs post-processed scores of 
 | loss_focal_dice | holdout40 | 2 | {'name': 'largest_cc', 'min_fraction': 0.1} | 0.877 ± 0.000 | 0.878 ± 0.001 | +0.001 | 10.84 ± 1.91 | 8.43 ± 0.17 | -2.40 | 2.09 ± 0.22 | 1.67 ± 0.00 | -0.42 | 0.605 ± 0.006 | 0.609 ± 0.006 | +0.004 | 0.858 ± 0.000 | 0.862 ± 0.001 | +0.004 |
 | sampler_weighted | holdout40 | 2 | {'name': 'largest_cc', 'min_fraction': 0.1} | 0.866 ± 0.004 | 0.869 ± 0.004 | +0.003 | 19.12 ± 0.57 | 8.15 ± 0.82 | -10.97 | 2.80 ± 0.27 | 1.69 ± 0.08 | -1.11 | 0.585 ± 0.009 | 0.593 ± 0.008 | +0.008 | 0.851 ± 0.007 | 0.861 ± 0.007 | +0.010 |
 | schedule_cosine | holdout40 | 2 | {'name': 'largest_cc', 'min_fraction': 0.1} | 0.853 ± 0.003 | 0.854 ± 0.004 | +0.002 | 14.05 ± 2.53 | 9.27 ± 0.77 | -4.78 | 2.25 ± 0.15 | 1.88 ± 0.08 | -0.36 | 0.553 ± 0.006 | 0.557 ± 0.007 | +0.005 | 0.838 ± 0.006 | 0.842 ± 0.009 | +0.005 |
+| tf_st2_2l_combo_core_ce_k32_res_nopos | holdout40 | 1 | {'name': 'largest_cc', 'min_fraction': 0.1} | 0.893 | 0.893 | +0.000 | 8.13 | 7.98 | -0.16 | 1.68 | 1.50 | -0.18 | 0.648 | 0.650 | +0.002 | 0.884 | 0.886 | +0.002 |
+| tf_st2_combo_core_ce_k32_nores | holdout40 | 1 | {'name': 'largest_cc', 'min_fraction': 0.1} | 0.867 | 0.869 | +0.002 | 10.05 | 8.89 | -1.16 | 1.93 | 1.81 | -0.12 | 0.606 | 0.612 | +0.006 | 0.837 | 0.843 | +0.006 |
+| tf_st2_combo_core_ce_k32_nores_pos | holdout40 | 1 | {'name': 'largest_cc', 'min_fraction': 0.1} | 0.867 | 0.869 | +0.003 | 9.72 | 8.29 | -1.43 | 2.08 | 1.73 | -0.36 | 0.607 | 0.613 | +0.006 | 0.843 | 0.851 | +0.008 |
+| tf_st2_combo_core_ce_k32_res_nopos | holdout40 | 1 | {'name': 'largest_cc', 'min_fraction': 0.1} | 0.893 | 0.893 | +0.000 | 8.13 | 7.98 | -0.16 | 1.68 | 1.50 | -0.18 | 0.648 | 0.650 | +0.002 | 0.884 | 0.886 | +0.002 |
+| tf_st2_combo_core_ce_k32_res_pos | holdout40 | 1 | {'name': 'largest_cc', 'min_fraction': 0.1} | 0.894 | 0.894 | +0.000 | 15.55 | 7.46 | -8.10 | 1.78 | 1.44 | -0.34 | 0.653 | 0.655 | +0.003 | 0.887 | 0.890 | +0.003 |
 
 ## Runs
 
@@ -307,18 +318,9 @@ Post-processing of the stitched 3D predictions: raw vs post-processed scores of 
 | enet_tf_bottleneck_2layer | holdout-f0-s42 | 0.779 | 0.578 |  | 24 / 25 | 60.6 | ce978f2* | cuda |
 | enet_tf_bottleneck_2layer | holdout-f0-s43 | 0.820 | 0.692 |  | 24 / 25 | 61.0 | ce978f2* | cuda |
 | enet_tf_bottleneck_2layer | holdout-f0-s44 | 0.795 | 0.625 |  | 23 / 25 | 61.1 | ce978f2* | cuda |
-| enet_tf_bottleneck_2layer_nores | holdout-f0-s42 | 0.779 | 0.578 |  | 24 / 25 | 60.6 | ce978f2* | cuda |
-| enet_tf_bottleneck_2layer_nores | holdout-f0-s43 | 0.820 | 0.692 |  | 24 / 25 | 61.0 | ce978f2* | cuda |
-| enet_tf_bottleneck_2layer_nores | holdout-f0-s44 | 0.795 | 0.625 |  | 23 / 25 | 61.1 | ce978f2* | cuda |
-| enet_tf_bottleneck_nores | holdout-f0-s42 | 0.768 | 0.510 | 20.55 | 24 / 25 | 58.9 | ce978f2* | cuda |
-| enet_tf_bottleneck_nores | holdout-f0-s43 | 0.731 | 0.406 |  | 18 / 25 | 61.3 | ce978f2* | cuda |
-| enet_tf_bottleneck_nores | holdout-f0-s44 | 0.704 | 0.386 |  | 24 / 25 | 61.0 | ce978f2* | cuda |
 | enet_tf_bottleneck_posembed | holdout-f0-s42 | 0.802 | 0.636 |  | 20 / 25 | 61.3 | ce978f2* | cuda |
 | enet_tf_bottleneck_posembed | holdout-f0-s43 | 0.727 | 0.400 |  | 21 / 25 | 61.3 | ce978f2* | cuda |
 | enet_tf_bottleneck_posembed | holdout-f0-s44 | 0.723 | 0.529 |  | 24 / 25 | 57.9 | ce978f2* | cuda |
-| enet_tf_bottleneck_posembed_nores | holdout-f0-s42 | 0.802 | 0.636 |  | 20 / 25 | 61.3 | ce978f2* | cuda |
-| enet_tf_bottleneck_posembed_nores | holdout-f0-s43 | 0.727 | 0.400 |  | 21 / 25 | 61.3 | ce978f2* | cuda |
-| enet_tf_bottleneck_posembed_nores | holdout-f0-s44 | 0.723 | 0.529 |  | 24 / 25 | 57.9 | ce978f2* | cuda |
 | enet_tf_decoder1 | holdout-f0-s42 | 0.595 | 0.592 | 12.63 | 24 / 25 | 59.3 | 98670d0* | cuda |
 | enet_tf_decoder1 | holdout-f0-s43 | 0.648 | 0.641 | 38.10 | 22 / 25 | 60.4 | 98670d0* | cuda |
 | enet_tf_decoder1 | holdout-f0-s44 | 0.645 | 0.640 | 66.03 | 24 / 25 | 60.4 | 98670d0* | cuda |
@@ -380,6 +382,11 @@ Post-processing of the stitched 3D predictions: raw vs post-processed scores of 
 | spacing_1.95_z2 | holdout40-f0-s42 | 0.786 | 0.780 | 13.22 | 20 / 25 | 417.3 | 65a53e7* | mps |
 | spacing_native_384 | holdout40-f0-s42 | 0.848 | 0.849 | 15.74 | 24 / 25 | 571.3 | 65a53e7* | mps |
 | spacing_native_384 | holdout40-f0-s43 | 0.822 | 0.822 | 26.68 | 20 / 25 | 565.0 | 65a53e7* | mps |
+| tf_st2_2l_combo_core_ce_k32_res_nopos | holdout40-f0-s42 | 0.891 | 0.893 | 8.13 | 18 / 25 | 246.0 | 5e675cf* | cuda |
+| tf_st2_combo_core_ce_k32_nores | holdout40-f0-s42 | 0.871 | 0.867 | 10.05 | 15 / 25 | 192.1 | 5e675cf* | cuda |
+| tf_st2_combo_core_ce_k32_nores_pos | holdout40-f0-s42 | 0.871 | 0.867 | 9.72 | 21 / 25 | 201.0 | 5e675cf* | cuda |
+| tf_st2_combo_core_ce_k32_res_nopos | holdout40-f0-s42 | 0.893 | 0.893 | 8.13 | 19 / 25 | 222.8 | 5e675cf* | cuda |
+| tf_st2_combo_core_ce_k32_res_pos | holdout40-f0-s42 | 0.894 | 0.894 | 15.55 | 23 / 25 | 220.8 | 5e675cf* | cuda |
 | window_narrow | holdout40-f0-s42 | 0.765 | 0.762 | 15.42 | 21 / 25 | 226.0 | 65a53e7* | mps |
 
 `*` = run made with uncommitted changes.

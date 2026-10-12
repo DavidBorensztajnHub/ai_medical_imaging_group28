@@ -1,0 +1,80 @@
+data:
+  gt: data/segthor_full
+  window:
+  - 40
+  - 400
+  extra_windows: []
+  target_spacing: null
+  shape:
+  - 384
+  - 384
+  split: holdout40
+  fold: 0
+input:
+  context_slices: 0
+model:
+  name: enet_transformer
+  params:
+    kernels: 32
+    factor: 2
+    transformer_at:
+    - stage2
+    use_pos_embed: true
+  pretrained: false
+loss:
+  name: ce_dice
+  dice_weight: 1.0
+  include_background: false
+regularizers: []
+optimizer:
+  name: adam
+  lr: 0.0005
+  betas:
+  - 0.9
+  - 0.999
+scheduler:
+  name: none
+augment:
+- combined
+train:
+  epochs: 25
+  batch_size: 8
+  seed: 42
+  num_workers: 5
+  early_stopping:
+    patience: null
+    min_delta: 0.0
+  sampler:
+    empty_weight: 0.7
+    class_weights:
+      esophagus: 2.0
+eval:
+  metrics_3d:
+  - dice
+  - hd
+  - hd95
+  - assd
+  - nsd
+  - nsd3
+  postprocess:
+  - name: largest_cc
+    min_fraction: 0.1
+wandb:
+  enabled: true
+  entity: ai4migroup28
+  project: ai4mi-segthor
+owner: Junis
+idea: stage 2 transformer with no resampling but with posembed, combo_core_ce (CE
+  + Dice, weighted sampler) with ENet kernels 32. Only the network width differs from
+  combo_core_ce and combo_core_ce_k16 and no resampling is used.
+experiment: tf_st2_combo_core_ce_k32_nores_pos
+_run:
+  config_file: configs/experiments/tf_st2_combo_core_ce_k32_nores_pos.yaml
+  overrides: []
+  device: cuda
+  debug: false
+  started: '2026-10-11T15:57:24'
+  git:
+    commit: 5e675cf
+    branch: master
+    dirty: true

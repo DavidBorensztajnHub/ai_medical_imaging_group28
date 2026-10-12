@@ -66,7 +66,7 @@ midterm pipeline.
 - Problem: "We resampled to 1.95 mm. The esophagus is then only 5–10 pixels wide, and ENet downsamples
   8× — so at the bottleneck it is about one pixel."
 - What we did: resample to the scanners' native in-plane resolution, **0.98 × 0.98 × 2.0 mm**, crop 384×384.
-- Result: **+0.049 Dice** (0.787 → 0.836), **esophagus +0.10** (0.561 → 0.659), in both seeds,
+- Result: **+0.048 Dice** (0.787 → 0.835), **esophagus +0.10** (0.561 → 0.659), in both seeds,
   8/8 and 7/8 patients better. Biggest single gain of the project. The gain grows as organs get smaller.
 - Why it's really resolution: "a tight crop at the old resolution only gives +0.016, and changing only the
   slice thickness gives nothing (−0.007) — the gain is in-plane."
@@ -91,9 +91,9 @@ augmentation at 1.95 mm vs at native.
 - What: affine (rotation, scale), elastic deformation, brightness/contrast, roll; moved to the GPU
   because CPU augmentation was the training bottleneck.
 - Result at 1.95 mm: **no reliable gain** (−0.003 in one run, +0.025 in the other — inconsistent).
-- Result at native: **0.836 → 0.866** (+0.03), esophagus 0.659 → 0.724.
+- Result at native: **0.835 → 0.866** (+0.03), esophagus 0.659 → 0.724.
 - **The second effect is the important one: it made the results reproducible.** Without augmentation
-  two seeds differed by 0.027 (0.849 vs 0.822); with augmentation the seeds of a run differ by at most
+  two seeds differed by 0.026 (0.849 vs 0.822); with augmentation the seeds of a run differ by at most
   ~0.008 (CE baseline, 3 seeds: 0.863–0.870). Without that, none of the later comparisons could be
   trusted.
 - Why only at native: "at 1.95 mm the model was limited by what it could see, not by overfitting.
@@ -122,7 +122,7 @@ Likely questions:
 | Focal + Dice | 0.878 | 0.766 | 8.4 |
 | CE + Tversky | 0.873 | 0.756 | 8.5 |
 | Weighted sampler alone | 0.869 | 0.729 | 8.2 |
-| **CE + Dice + sampler** | **0.880** | 0.766 | **8.5** |
+| **CE + Dice + sampler** | **0.880** | 0.766 | **8.4** |
 
 **Puck — the loss:**
 - Problem: "Cross-entropy is an average over pixels. In a slice, background and heart are almost all
@@ -139,7 +139,7 @@ Likely questions:
 - Fix: draw slices by weight — empty slices ×0.7, esophagus slices ×2 → 18% empty, 75% esophagus per
   epoch, same epoch length.
 - Alone: small, +0.003 (0.869; one seed gained, the other hardly).
-- **Together with CE + Dice: 0.880, and HD95 back to 8.5 mm** (from 10.0) in both seeds, best NSD at that
+- **Together with CE + Dice: 0.880, and HD95 back to 8.4 mm** (from 10.0) in both seeds, best NSD at that
   point. We have no clean explanation for why the combination fixes the HD95 — say it's observed, not
   explained.
 - 2.5D (neighbouring slices as extra channels): no effect at 1.95 mm (+0.002); with the lung window at
@@ -281,11 +281,11 @@ Likely questions:
 | + native resolution 0.98 mm, 384×384 (raw) | 2 | 0.835 | 0.659 | 0.923 | 0.861 | 0.899 | 21.2 | 3.26 | 0.534 |
 | + GPU augmentation (+ post-processing) | 3 | 0.866 | 0.724 | 0.939 | 0.883 | 0.918 | 8.2 | 1.71 | 0.587 |
 | + CE + Dice loss | 2 | 0.876 | 0.772 | 0.929 | 0.886 | 0.918 | 10.0 | 1.83 | 0.605 |
-| + weighted slice sampler (`combo_core_ce`) | 2 | 0.880 | 0.766 | 0.936 | 0.890 | 0.928 | 8.5 | 1.67 | 0.620 |
+| + weighted slice sampler (`combo_core_ce`) | 2 | 0.880 | 0.766 | 0.936 | 0.890 | 0.928 | 8.4 | 1.67 | 0.620 |
 | + wider ENet, kernels 8 → 16 | 2 | 0.890 | 0.791 | 0.938 | 0.900 | 0.931 | 7.7 | 1.55 | 0.640 |
 | **+ 50 epochs, cosine lr = FINAL (`combo_core_ce_k16_cosine50`)** | 2 | **0.8945** | **0.793** | **0.945** | **0.902** | **0.938** | **6.4** | **1.38** | **0.653** |
 | Final, 4-fold CV (folds 1–4, 32 other patients) | 4 | 0.866 ± 0.011 | 0.746 | 0.940 | 0.870 | 0.908 | 11.1 | 1.91 | 0.637 |
-| (side result: kernels 32, 25 epochs, `combo_core_ce_k32`) | 2 | 0.894 | 0.794 | 0.945 | 0.901 | 0.935 | 7.1 | 1.44 | 0.654 |
+| (side result: kernels 32, 25 epochs, `combo_core_ce_k32`) | 2 | 0.894 | 0.794 | 0.945 | 0.901 | 0.935 | 7.0 | 1.44 | 0.654 |
 | (side result: kernels 32, 50 epochs cosine, `combo_core_ce_k32_cosine50`) | 2 | 0.896 | 0.800 | 0.943 | 0.904 | 0.937 | 7.4 | 1.46 | 0.661 |
 | (side result: + stage-2 transformer on k32, 25 epochs, `tf_st2_combo_core_ce_k32_res_pos`) | 1 | 0.894 | 0.798 | 0.949 | 0.901 | 0.928 | 7.5 | 1.44 | 0.655 |
 
@@ -299,7 +299,7 @@ Headlines:
 - **Midterm pipeline → final: +0.108 Dice, esophagus +0.232; better in 8/8 validation patients**
   (per patient, mean Dice: 01 .82→.92, 13 .82→.89, 16 .83→.90, 22 .78→.87, 28 .70→.87, 30 .73→.88,
   35 .82→.91, 39 .80→.91). The weakest midterm patients (28, 30) gain most.
-- Seeds agree within 0.000–0.008 for every step after augmentation (0.027 before it); the CE
+- Seeds agree within 0.000–0.008 for every step after augmentation (0.026 before it); the CE
   baseline's 3 seeds span 0.863–0.870.
 - The final holdout number is **2 seeds** (per-patient values above are the 2-seed mean).
 
@@ -310,11 +310,11 @@ HD95 raw → post-processed (≥10% CC):
 | Model | Raw HD95 | Post HD95 | Δ |
 |---|---|---|---|
 | augmentation-native384 (k8, CE), 3 seeds | 15.1 | 8.2 | −7.0 |
-| combo_core_ce (k8), 2 seeds | 14.7 | 8.5 | −6.3 |
+| combo_core_ce (k8), 2 seeds | 14.7 | 8.4 | −6.3 |
 | combo_core_ce_k16, 2 seeds | 12.9 | 7.7 | −5.3 |
 | **final k16_cosine50, holdout, 2 seeds** | **16.0** (s42 8.8 / s43 23.1) | **6.4** | **−9.6** |
 | final k16_cosine50, CV folds 1–4 | 13.0 | 11.1 | −2.0 |
-| combo_core_ce_k32, 2 seeds | 6.9 | 7.1 | +0.2 |
+| combo_core_ce_k32, 2 seeds | 6.9 | 7.0 | +0.2 |
 | combo_core_ce_k32_cosine50, 2 seeds | 7.0 | 7.4 | +0.3 |
 
 - The final model still makes **stray blobs far from the organ**, different ones per seed: seed 43 a
@@ -332,7 +332,7 @@ Why this one over k32 (0.894 at 25 epochs) and k32 + cosine50 (0.896, the highes
 - **It is the only configuration with a cross-validation** (folds 1–4) → the final model has an
   estimate on 32 patients that played no part in choosing it.
 - **4× fewer parameters** (1.1M vs 4.4M): smaller and faster at inference.
-- Best HD95 / ASSD after post-processing (6.4 / 1.38 mm vs 7.1 / 1.44 for k32 and 7.4 / 1.46 for
+- Best HD95 / ASSD after post-processing (6.4 / 1.38 mm vs 7.0 / 1.44 for k32 and 7.4 / 1.46 for
   k32 + cosine50).
 - Cosine decay flattens the end of the curve, so the score depends less on picking a lucky epoch than
   with a constant lr (k16 at constant lr, seed 42: best epoch 0.888 vs last 0.860).
@@ -385,7 +385,7 @@ and it touches the aorta and trachea. The midterm model got 0.56 on it vs 0.92 o
   validates the midterm GT fix. New split `holdout40`; old `holdout` runs no longer comparable.
 - HU window [40, 400]: removing it costs −0.036 (0/8 patients better, p = 0.008), HD95 14.5 → 29.4.
 - Resampling: removing it costs −0.020, almost all from Patient_35 (only 1.37 mm scan, −0.147).
-- **Native in-plane resolution 0.98 mm, 384×384: +0.049 (both seeds), esophagus +0.098** — biggest
+- **Native in-plane resolution 0.98 mm, 384×384: +0.048 (both seeds), esophagus +0.098** — biggest
   single gain. The esophagus is 5–10 px wide at 1.95 mm, and ENet downsamples 8× → ~1 px at the
   bottleneck. At 0.98 mm it survives. ⅔ resolution, ⅓ tighter crop (`spacing_1.95_crop192` +0.016).
 - Dropped: narrow window [40, 300] (−0.025); slice thickness only (−0.007, gain is in-plane);
@@ -394,7 +394,7 @@ and it touches the aorta and trachea. The midterm model got 0.56 on it vs 0.92 o
 
 ### 2b. Augmentation (Githa) — KEPT, the enabler
 - At 1.95 mm: no gain (−0.003 / +0.025). **At native: +0.026–0.031**, esophagus 0.659 → 0.724, and seed
-  spread 0.027 → 0.002–0.008. Why only at native: at 1.95 mm the model was limited by resolution,
+  spread 0.026 → 0.002–0.008. Why only at native: at 1.95 mm the model was limited by resolution,
   not by overfitting.
 - Moved to the GPU (CPU was the bottleneck); per batch vs per sample: tie (0.866 / 0.866).
 - Flaw: `roll` wraps the image around (anatomically impossible) → should be a translation.
@@ -408,14 +408,14 @@ On the augmented native baseline (0.866), 2 seeds each:
 | Focal (γ=2) + Dice | 0.878 | 0.766 | 8.4 | tie; CE + Dice simpler |
 | CE + Tversky (α 0.3, β 0.7) | 0.873 | 0.756 | 8.5 | dropped |
 | Weighted sampler alone | 0.869 | 0.729 | 8.2 | weak alone |
-| CE + Dice + sampler | **0.880** | 0.766 | **8.5** | **kept** |
+| CE + Dice + sampler | **0.880** | 0.766 | **8.4** | **kept** |
 | Focal + Dice + sampler | 0.876 | 0.761 | 8.3 | dropped |
 
 - Why the Dice term helps: CE averages over pixels, so background and heart dominate; Dice weighs each
   organ equally → esophagus +0.05 in both seeds.
 - Tversky favours recall (β = 0.7) → smaller Dice gain; at 1.95 mm it also produced stray blobs.
 - Sampler: empty slices 37% → 18% of draws, esophagus slices 53% → 75%. Alone weak; with CE + Dice it
-  fixed CE + Dice's HD95 (10.0 → 8.5). No clear mechanism — observed in both seeds.
+  fixed CE + Dice's HD95 (10.0 → 8.4). No clear mechanism — observed in both seeds.
 
 ### 2d. "The model is too small / lacks context" → architecture (Junis, David, Elena)
 - **Transformer in ENet (Junis):** one self-attention layer at 4 places, 1 vs 2 layers, positional
@@ -429,7 +429,7 @@ On the augmented native baseline (0.866), 2 seeds each:
 
   | Variant | Dice | Esophagus | HD95 | vs plain k32 (2 seeds) |
   |---|---|---|---|---|
-  | stage 2, positional embedding | 0.894 | 0.798 | 7.5 | 0.894 / 0.794 / 7.1 → no gain |
+  | stage 2, positional embedding | 0.894 | 0.798 | 7.5 | 0.894 / 0.794 / 7.0 → no gain |
   | stage 2, no positional embedding | 0.893 | 0.793 | 8.0 | no gain |
   | stage 2 + pos. embedding, **no resampling** | 0.869 | 0.768 | 8.3 | −0.025 |
   | stage 2, no resampling | 0.869 | 0.762 | 8.9 | −0.025 |

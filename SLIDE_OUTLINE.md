@@ -62,7 +62,7 @@ Total: 10:00. Part 5 speaker still to decide (Elena, Githa or David).
 - **Visual:** ladder strip with the first three bars (starter 0.703 → midterm 0.787 → native 0.835),
   esophagus 0.468 → 0.561 → 0.659.
 - **On slide:** small table "kept / dropped":
-  - Kept: HU window [40, 400], native 0.98 mm resampling (+0.049, esophagus +0.10, both seeds).
+  - Kept: HU window [40, 400], native 0.98 mm resampling (+0.048, esophagus +0.10, both seeds).
   - Dropped: narrow window (−0.025) · slice thickness only (no effect) · lung window channel (no gain
     at native).
 - Footnote: "gain is in-plane: tight crop at 1.95 mm only +0.016; slice thickness only −0.007".
@@ -73,8 +73,8 @@ Total: 10:00. Part 5 speaker still to decide (Elena, Githa or David).
 ### Slide 5 — Augmentation only paid off at native resolution — and made results reproducible (1:15)
 - **Visual, two panels:**
   - Left: 2×2 bars — no augmentation vs augmentation, at 1.95 mm and at native. At 1.95 mm no reliable
-    change (−0.003 / +0.025); at native 0.836 → 0.866, esophagus 0.659 → 0.724.
-  - Right: dot plot of seeds — without augmentation 0.849 and 0.822 (spread 0.027), with augmentation
+    change (−0.003 / +0.025); at native 0.835 → 0.866, esophagus 0.659 → 0.724.
+  - Right: dot plot of seeds — without augmentation 0.849 and 0.822 (spread 0.026), with augmentation
     0.863 / 0.863 / 0.870 (spread ~0.008).
 - **On slide:** row of 4 small augmented example slices (affine, elastic, brightness/contrast, roll),
   "on the GPU".
@@ -100,7 +100,7 @@ Total: 10:00. Part 5 speaker still to decide (Elena, Githa or David).
 
 ### Slide 7 — Sampling more esophagus slices fixes the Dice term's stray errors (David, 0:55)
 - **Visual:** two stacked bars "share of slices per epoch": before 37% empty / 53% esophagus → after
-  18% / 75%; next to it before/after for CE + Dice: Dice 0.876 → **0.880**, HD95 10.0 → **8.5 mm**.
+  18% / 75%; next to it before/after for CE + Dice: Dice 0.876 → **0.880**, HD95 10.0 → **8.4 mm**.
 - **On slide:** "empty ×0.7 · esophagus ×2 · same epoch length"; one line "2.5D (+ lung window):
   +0.004 at 1.8× training time → dropped".
 - Ladder strip: + Dice term + sampler = 0.880 / esophagus 0.766.

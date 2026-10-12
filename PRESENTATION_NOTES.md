@@ -11,6 +11,265 @@ is the frozen table once the group confirms the final model (section 1c).
 
 ---
 
+## 0. Speaker script (who says what)
+
+### What the graders look for, and how this story answers it
+
+| Criterion (from the brief) | How we cover it |
+|---|---|
+| Motivation of the final solution | Every part starts from a **property of SegTHOR / a failure we saw**, not from a technique |
+| Results vs baseline | One recurring **ladder figure** that grows by one step per speaker; final model vs baseline + CV |
+| Critical analysis, limitations, solutions | Each part says what was **dropped and why**; part 5 ends with CV + limitations → solutions |
+| Balance between speakers | ~1.5 min each; part 5 still to be assigned (Elena, Githa or David) |
+| No "catalog" | Each part ends with a **transition sentence** that hands the next problem to the next speaker |
+
+**One thread through the whole talk: the esophagus.** It is the organ that fails, and almost every kept
+change helps it most. Midterm pipeline: esophagus 0.561 vs heart 0.915.
+
+**Conventions for every slide (so the numbers agree across speakers):**
+- 3D Dice on the 8 holdout patients, after post-processing, mean of 2 seeds (3 for the CE baseline),
+  unless the slide says "raw" or "1 seed".
+- Say "midterm pipeline" for 0.787 (1.95 mm), "CE baseline" for 0.866 (native + augmentation), "final
+  model" for 0.8945. Don't say "current" (it changed meaning).
+- Round to 3 decimals; ±0.01 between single runs is noise (the CE baseline's own seeds: 0.863–0.870).
+- Same organ colours on every chart (e.g. esophagus = one fixed colour, highlighted).
+
+**Recurring figure — the ladder** (bar or step chart, mean Dice and esophagus Dice; each speaker adds
+their bar):
+
+| Step | Dice | Esophagus | Speaker |
+|---|---|---|---|
+| Starter code (raw) | 0.703 | 0.468 | intro |
+| Midterm pipeline (raw) | 0.787 | 0.561 | intro |
+| + native resolution (raw) | 0.835 | 0.659 | Elena |
+| + augmentation = CE baseline | 0.866 | 0.724 | Githa |
+| + Dice term + sampler | 0.880 | 0.766 | Puck & David |
+| + wider ENet, 50 epochs cosine = final | 0.8945 | 0.793 | Junis |
+| (post-processing is in every post-processed bar) | | | Britt |
+| Final, cross-validation on 32 unseen patients | 0.866 ± 0.011 | 0.746 | part 5 |
+
+**Timing (10:00):** intro 0:30 · part 0 1:30 · part 1 1:15 · part 2 1:45 · part 3 1:30 · part 4 1:30 ·
+part 5 2:00.
+
+---
+
+### Intro + Part 0 — "Too small to see" → native resolution (Elena, ~2:00 incl. intro)
+
+**Slide 1 — The problem (0:30).** Picture of one axial slice with the 4 organs; per-organ Dice of the
+midterm pipeline.
+- "SegTHOR: 4 organs at risk in thoracic CT. The heart is easy — the esophagus is the problem."
+- "At the midterm we were at 0.787 Dice, but only 0.56 on the esophagus versus 0.92 on the heart."
+- "The esophagus is 1–2 cm across, has almost the same intensity as the fat around it, takes up a tiny
+  fraction of the voxels, and touches the aorta and trachea. Everything we did since is aimed at that."
+
+**Slide 2 — Resolution (1:30).**
+- Problem: "We resampled to 1.95 mm. The esophagus is then only 5–10 pixels wide, and ENet downsamples
+  8× — so at the bottleneck it is about one pixel."
+- What we did: resample to the scanners' native in-plane resolution, **0.98 × 0.98 × 2.0 mm**, crop 384×384.
+- Result: **+0.049 Dice** (0.787 → 0.836), **esophagus +0.10** (0.561 → 0.659), in both seeds,
+  8/8 and 7/8 patients better. Biggest single gain of the project. The gain grows as organs get smaller.
+- Why it's really resolution: "a tight crop at the old resolution only gives +0.016, and changing only the
+  slice thickness gives nothing (−0.007) — the gain is in-plane."
+- Dropped, one line each: narrow HU window [40, 300] (−0.025, worse in 7/8 patients); slice thickness
+  only (no effect); lung window as extra channel (trade-off at 1.95 mm, no gain at native: 0.847 vs
+  0.849); 1.5 mm (superseded).
+- Kept from before: HU window [40, 400] (removing it −0.036, HD95 doubles) and resampling (−0.020).
+- Cost: 2.6× training time.
+- **Transition:** "Higher resolution means more detail — but also more to learn from only 32 patients.
+  That's where augmentation came in."
+
+Likely questions:
+- *Why not even higher resolution?* Native is the scanner's resolution; going finer only interpolates.
+- *Why 2.0 mm in z?* Slice thickness alone made no difference; 2.0 mm is close to the native spacing.
+
+---
+
+### Part 1 — Augmentation as the enabler (Githa, ~1:15)
+
+**Slide — Augmentation only helps once the resolution is right.** Small table or two bars:
+augmentation at 1.95 mm vs at native.
+- What: affine (rotation, scale), elastic deformation, brightness/contrast, roll; moved to the GPU
+  because CPU augmentation was the training bottleneck.
+- Result at 1.95 mm: **no reliable gain** (−0.003 in one run, +0.025 in the other — inconsistent).
+- Result at native: **0.836 → 0.866** (+0.03), esophagus 0.659 → 0.724.
+- **The second effect is the important one: it made the results reproducible.** Without augmentation
+  two seeds differed by 0.027 (0.849 vs 0.822); with augmentation the seeds of a run differ by at most
+  ~0.008 (CE baseline, 3 seeds: 0.863–0.870). Without that, none of the later comparisons could be
+  trusted.
+- Why only at native: "at 1.95 mm the model was limited by what it could see, not by overfitting.
+  Once it could see the esophagus, it started to overfit the 32 training patients — that's when
+  augmentation pays off."
+- Detail if time: one draw per batch vs per slice: tie (0.866 / 0.866), kept per batch.
+- Honest flaw: `roll` wraps the image around — anatomically impossible; a translation with padding
+  would be better.
+- **This bar = the CE baseline (0.866) that all later parts compare against.**
+- **Transition:** "Now the model sees the esophagus, and results are stable. But it still learns
+  mostly from background and heart — the esophagus is too rare."
+
+Likely questions:
+- *Why is per-batch augmentation enough?* Tested per slice too: same result.
+- *Why GPU?* The CPU workers couldn't keep up at 384×384; the GPU sat idle.
+
+---
+
+### Part 2 — "Too rare to learn" → loss and sampling (Puck: loss, David: sampler, ~1:45)
+
+**Slide — Make the esophagus count.** Table with the 2-seed results (green = kept):
+
+| Change (on the CE baseline 0.866) | Dice | Esophagus | HD95 |
+|---|---|---|---|
+| CE + Dice (organs only) | 0.876 | **0.772** | 10.0 |
+| Focal + Dice | 0.878 | 0.766 | 8.4 |
+| CE + Tversky | 0.873 | 0.756 | 8.5 |
+| Weighted sampler alone | 0.869 | 0.729 | 8.2 |
+| **CE + Dice + sampler** | **0.880** | 0.766 | **8.5** |
+
+**Puck — the loss:**
+- Problem: "Cross-entropy is an average over pixels. In a slice, background and heart are almost all
+  the pixels, so the esophagus hardly contributes to the loss."
+- Fix: add a **Dice term**, computed per organ and averaged over the 4 organs (background excluded).
+  Every organ then counts equally, whatever its size.
+- Result: esophagus **+0.05** (0.724 → 0.772) in both seeds; mean Dice better in 7–8 of 8 patients.
+- Focal + Dice: same Dice (0.878 vs 0.876, within noise) → kept CE + Dice as the simpler one.
+- Tversky (weights missed pixels more, β = 0.7): smaller gain (0.873) → dropped.
+- Side effect: CE + Dice has worse HD95 (10.0 mm, both seeds) — stray false positives.
+
+**David — the sampler (and 2.5D):**
+- Problem on the data side: 37% of the training slices contain no organ at all; the esophagus is in 53%.
+- Fix: draw slices by weight — empty slices ×0.7, esophagus slices ×2 → 18% empty, 75% esophagus per
+  epoch, same epoch length.
+- Alone: small, +0.003 (0.869; one seed gained, the other hardly).
+- **Together with CE + Dice: 0.880, and HD95 back to 8.5 mm** (from 10.0) in both seeds, best NSD at that
+  point. We have no clean explanation for why the combination fixes the HD95 — say it's observed, not
+  explained.
+- 2.5D (neighbouring slices as extra channels): no effect at 1.95 mm (+0.002); with the lung window at
+  native 0.870 vs 0.866 (+0.004, 1 seed), at 1.8× the training time → dropped for the cost.
+- **Transition:** "Loss and data now point the model at the esophagus. Next question: is the network
+  big enough, and does it see enough context?"
+
+Likely questions:
+- *Why exclude background from the Dice term?* Its Dice is always ~1, so it only dilutes the signal
+  (same choice as nnU-Net).
+- *Why not combine focal + Dice with the sampler?* Tried: 0.876, no better.
+
+---
+
+### Part 3 — "Model too small or lacking context" → transformer vs width (Junis, ~1:30)
+
+**Slide — Two ways to give ENet more capacity.** Left: transformer; right: width curve
+(0.28M → 1.1M → 4.4M parameters vs Dice).
+- Hypothesis A, **context**: add a self-attention layer inside ENet so each position sees the whole slice.
+  - On the old 20-patient split: best at the end of stage 2, +0.098 (0.569 → 0.666, 3 seeds); other
+    placements and 2 layers were very seed-sensitive.
+  - **On the final pipeline** (stage 2, in the wide ENet, with CE + Dice + sampler): **0.894 vs 0.894
+    without it — no gain.** Without resampling it drops to 0.869, the same lesson as part 0.
+- Hypothesis B, **capacity**: ENet with 8 kernels has only 0.28M parameters for 384×384 inputs.
+  - kernels 8 → 16 → 32: **0.880 → 0.890 → 0.894**; esophagus 0.766 → 0.791 → 0.794.
+  - Most of the gain is at 16; doubling again adds +0.004 at 4× the parameters → **width saturates
+    at 16**. No extra training time on the A100 (the small network left the GPU underused).
+- And train long enough: every run peaked at epoch 20–24 of 25 with a jumpy curve (k16: best epoch
+  0.888, last epoch 0.860).
+  - Cosine decay over 25 epochs: worse (−0.012) — the learning rate drops before the model has converged.
+  - **50 epochs with cosine: 0.8945 → the final model**, flat at the end (best epoch ≈ last epoch), and the
+    best HD95 (6.4 mm).
+- Conclusion: "**Plain width was the cheaper way to give ENet capacity.** Once the network is wide enough,
+  the attention layer adds nothing measurable."
+- **Transition:** "The model is now good on average — but sometimes it predicts a piece of trachea or
+  aorta 10–20 cm away from where it should be."
+
+Likely questions:
+- *Why not k32 + 50 epochs as final?* 0.896 vs 0.8945 — within noise, worse HD95 (7.4 vs 6.4), 4× the
+  parameters, and only k16 has a cross-validation.
+- *Why did the transformer help on the old split?* The old ENet was small and the split had 5 val
+  patients; with a wide ENet the extra layer has nothing left to add.
+
+---
+
+### Part 4 — "Fragmented predictions and stray blobs" → post-processing and boundary loss (Britt, ~1:30)
+
+**Slide — Dice barely notices, HD95 does.** One image of a stray blob + raw vs post HD95 bars.
+- Problem: a 2D model sometimes predicts an organ far from where it is (e.g. a trachea blob 27 cm
+  away in Patient_22). Dice hardly changes; **HD95 explodes** (271 mm for that organ).
+- **Post-processing (kept):** per organ, keep every 3D component that is at least 10% of the largest.
+  - Final model: HD95 **16.0 → 6.4 mm**, Dice +0.001. Same on every model (CE baseline 15.1 → 8.2).
+  - Why ≥10% and not only the largest: the esophagus is predicted as several pieces along z; keeping
+    only the largest cuts real esophagus away.
+  - "Skip the esophagus" looked best on one seed, but the other seed put flat esophagus blobs 6 cm off
+    in every patient (esophagus HD95 70 mm) → **one seed can lie**.
+  - Tried closing along z, a distance rule, hole filling: helped the weak early model (HD95 12.5 → 10.3)
+    but **made a stronger model worse** (aorta HD95 6.1 → 9.4) → kept the simple rule; post-processing
+    must be re-checked on the final model.
+- **Boundary loss (Britt):** penalise differences between predicted and true organ edges (Sobel L1),
+  per organ.
+  - Weight 0.1: no effect. Weight 5: **removes the stray blobs during training** (raw HD95 15.1 → 8.7 mm)
+    — the same job the post-processing does.
+  - After post-processing nothing is left to gain (9.6 vs 8.2), and on top of the final loss it made
+    things worse (0.873 vs 0.882, 1 seed) → dropped.
+  - Merged-foreground version collapsed (0.703): it ignores the boundary between touching organs —
+    exactly where the esophagus errors are.
+- Take-away: "**the stray-blob problem is learnable** — but a cheap post-processing rule does the same,
+  for free."
+- **Transition:** "So this is our final pipeline. How good is it really?"
+
+Likely questions:
+- *Why report HD95 at all?* Because Dice hides exactly these errors — a 27 cm mistake changes Dice by
+  <0.01.
+- *Why didn't the boundary loss help Dice?* It optimises edges, not overlap, and competes with the Dice
+  term late in training (best epoch 13 of 25 instead of 20+).
+
+---
+
+### Part 5 — Final model, cross-validation, limitations (Elena / Githa / David — to decide, ~2:00)
+
+**Slide A — Final model vs baseline (0:40).** Pipeline diagram + table:
+
+| | Starter | Midterm | CE baseline | **Final** |
+|---|---|---|---|---|
+| Mean Dice | 0.703 | 0.787 | 0.866 | **0.8945** |
+| Esophagus | 0.468 | 0.561 | 0.724 | **0.793** |
+| Heart / trachea / aorta | .840 / .786 / .720 | .915 / .808 / .865 | .939 / .883 / .918 | **.945 / .902 / .938** |
+| HD95 (mm) | 23.3 | 14.5 | 8.2 | **6.4** |
+
+- Final pipeline: HU window → native 0.98 mm, 384×384 → ENet kernels 16 → GPU augmentation →
+  CE + Dice + weighted sampler → 50 epochs cosine → keep components ≥10% of the largest.
+- "+0.108 over the midterm pipeline, better in all 8 patients; the weakest midterm patients gain most
+  (Patient_28: 0.70 → 0.87)."
+- Qualitative figure: one patient, midterm vs final (e.g. Patient_28), esophagus highlighted.
+
+**Slide B — Cross-validation: the honest number (0:40).**
+- "All our choices were made on the same 8 patients. So at the end we trained the final model on 4 other
+  folds — 32 patients that played no role in any decision."
+- **0.866 ± 0.011** (folds 0.858 / 0.864 / 0.885 / 0.858) vs 0.8945 on the holdout.
+- The drop is in the small organs: esophagus 0.746 vs 0.793, trachea −0.03, aorta −0.03; the heart
+  generalises (0.940 vs 0.945).
+- Why: about half is fold difficulty (the untuned starter code is also ~0.013 better on our holdout),
+  half is **selection bias** from tuning on 8 patients.
+- The gain is real: on the same 32 unseen patients, starter code → final model = **0.690 → 0.865**
+  (raw, +0.175).
+
+**Slide C — Limitations → solutions (0:40).**
+
+| Limitation | Evidence | Solution |
+|---|---|---|
+| Holdout is optimistic | CV 0.866 vs 0.8945 | Choose on CV folds, keep an untouched test set |
+| Esophagus still the weakest | 0.75 in CV vs 0.94 heart; Patient_24 0.50 | 3D / 2.5D context, shape prior |
+| Post-processing can't fix large wrong blobs | Patient_14 trachea HD95 208 mm in CV | Anatomical position rule; boundary loss |
+| Post-processing removes real esophagus pieces on unseen patients | esophagus HD95 raw 9.6 → post 10.6 in CV | Close along z before filtering |
+| Few seeds / 8 val patients | ±0.01 is noise | More seeds, CV for every decision |
+| `roll` augmentation | wraps anatomy around | Translation with padding |
+
+- Close with one sentence: "From 0.56 to 0.79 on the esophagus — mostly by letting the model see it,
+  making it count, and giving the network enough capacity."
+
+Likely questions:
+- *Why not use CV for every decision?* Compute: one 50-epoch run is ~6 h on Snellius; CV × every
+  experiment wasn't feasible. That's the first thing we'd change.
+- *Is 0.866 better than the baseline?* The baseline was never cross-validated except the starter
+  code (0.690 raw on the same folds). On the holdout: 0.8945 vs 0.866, +0.029, in both seeds.
+- *What about the test set?* No labels for it; CV is our estimate of unseen-patient performance.
+
+---
+
 ## 1. Final results
 
 ### 1a. The ladder (one change per step, post-processed unless "raw")

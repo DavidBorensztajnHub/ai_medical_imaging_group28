@@ -219,7 +219,7 @@ Likely questions:
 
 ---
 
-### Part 5 — Final model, cross-validation, limitations (Elena / Githa / David — to decide, ~2:00)
+### Part 5 — Final model, cross-validation, limitations (to decide who talks, ~2:00)
 
 **Slide A — Final model vs baseline (0:40).** Pipeline diagram + table:
 

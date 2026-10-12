@@ -1,0 +1,6 @@
+base: combo_core_ce.yaml
+owner: Junis
+idea: "stage 2 transformer with combo_core_ce (CE + Dice, weighted sampler) with ENet kernels 32. Only the network width differs from combo_core_ce and combo_core_ce_k16. Resampling and positional embeddings are on."
+model:
+  name: enet_transformer
+  params: {kernels: 32, transformer_at: [stage2], num_layers: 2}

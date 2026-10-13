@@ -1,1 +1,1 @@
-"""Modular SegTHOR pipeline. See PIPELINE_PLAN.md."""
+"""Modular SegTHOR pipeline (entry point: run.py)."""

@@ -1,4 +1,4 @@
-# Current choices. Change a line when the group agrees and add an entry to DECISIONS.md.
+# Current choices. Change a line when the group agrees.
 # Experiments in configs/experiments/ start from this file with `base: ../current.yaml`.
 
 # This file currently includes the following changes from the original baseline:

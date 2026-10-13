@@ -28,7 +28,7 @@ data/segthor_part1: data/segthor_part1.zip
 ## corrected GT (data/gt/watershed_refined, built as an order-only prereq), which
 ## holds both the CT and the repaired GT. The modular pipeline does NOT use this
 ## target -- it slices once via `make data-cache` (see below). For per-technique
-## experiments use run.py with a config (PIPELINE_PLAN.md), not main.py.
+## experiments use run.py with a config, not main.py.
 data/SEGTHOR: | data/gt/watershed_refined
 	$(info $(green)python $(CFLAGS) slice_segthor.py$(reset))
 	rm -rf $@_tmp $@
@@ -98,7 +98,7 @@ data-experiments: data/experiments/original data/experiments/watershed_minmax \
                   data/experiments/watershed_window data/experiments/watershed_window_resampled \
                   data/experiments/refined_window data/experiments/refined_window_resampled
 
-## Modular pipeline (see PIPELINE_PLAN.md): all patients sliced once for run.py.
+## Modular pipeline: all patients sliced once for run.py.
 ## run.py builds it automatically when missing; this target only does it ahead of time.
 ## Resampling (target_spacing) gets its own cache folder, so switching it on/off
 ## never reuses the wrong slices -- run.py rebuilds the cache automatically.

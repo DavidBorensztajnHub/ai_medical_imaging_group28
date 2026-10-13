@@ -26,7 +26,7 @@ fi
 
 EXPERIMENTS=("$@")
 if [ ${#EXPERIMENTS[@]} -eq 0 ]; then
-    # Priority order (see DECISIONS.md, "Preprocessing findings").
+    # Priority order.
     EXPERIMENTS=(
         spacing_1.95_crop192     # tight crop at 1.95 mm: splits native_384's gain into crop vs resolution
         spacing_native_384:43    # 2nd seed of the best run, before it becomes current

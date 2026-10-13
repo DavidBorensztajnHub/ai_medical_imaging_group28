@@ -14,7 +14,7 @@ Everything is nearest-neighbour (``order=0``) so labels stay integer. The single
 reconstruction entry point is ``stitch_to_native`` -- extend it (not evaluate_3d)
 when adding spacing-aware behaviour.
 
-Metrics come in two families (see METRICS_PLAN.md): overlap (dice) and boundary
+Metrics come in two families: overlap (dice) and boundary
 (hd / hd95 / assd / nsd). Because reconstruction always lands on the native grid,
 the boundary metrics use the true GT voxel spacing (mm) for every run, resampled
 or not -- so a resampled run is scored on the same physical footing as a plain one.

@@ -268,6 +268,52 @@ def e05_resolution_per_organ():
     save(fig, "elena_05_resolution_per_organ")
 
 
+def e07_preprocessing_per_organ():
+    """The midterm per-organ preprocessing chart, rebuilt on the full data (8 holdout patients) + native spacing."""
+    steps = [("No preprocessing (starter code)", [repo("full_data_baseline")]),
+             ("HU window", [repo("no_resampling")]),
+             ("HU window + resampling 1.95 mm (midterm)", [repo("current")]),
+             ("HU window + resampling 0.98 mm (native)", [repo("spacing_native_384", s) for s in (42, 43)])]
+    ramp = ["#b7d3f6", "#5598e7", "#256abf", "#0d366b"]  # ordinal blue ramp: later step = darker
+    groups = ORGANS + ["mean"]
+    fig, ax = plt.subplots(figsize=(11, 5.4))
+    style_axes(ax)
+    ax.set_ylim(0, 1.15)
+    ax.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    ax.set_ylabel("3D Dice (raw)")
+    bw, gap = 0.19, 0.012
+    vals = {}
+    for gi, g in enumerate(groups):
+        for si, (lab, runs) in enumerate(steps):
+            v = mean_of(runs, metric="dice", cls=None if g == "mean" else g, key="metrics_3d")
+            vals[(g, si)] = v
+            x = gi + (si - 1.5) * (bw + gap)
+            rounded_bar(ax, x, bw, v, ramp[si])
+            ax.text(x, v + 0.012, f"{v:.2f}", ha="center", va="bottom", fontsize=8.8,
+                    color=INK if si == 3 else INK_2, fontweight="bold" if si == 3 else None)
+    ax.set_xlim(-0.55, len(groups) - 0.45)
+    ax.axvline(len(ORGANS) - 0.5, color=GRID, linewidth=1)
+    ax.set_xticks(range(len(groups)))
+    tl = ax.set_xticklabels(["Esophagus", "Heart", "Trachea", "Aorta", "Mean"], fontsize=11)
+    tl[0].set_fontweight("bold")
+    for t in tl:
+        t.set_color(INK)
+    hs = [plt.Line2D([0], [0], marker="s", linestyle="", markersize=10, markerfacecolor=c, markeredgecolor="none",
+                     label=l) for (l, _), c in zip(steps, ramp)]
+    lg = ax.legend(handles=hs, loc="upper left", frameon=False, ncol=2, bbox_to_anchor=(0, 1.2), borderaxespad=0,
+                   handletextpad=0.4, columnspacing=1.6)
+    for t in lg.get_texts():
+        t.set_color(INK_2)
+    e1, e2 = vals[("esophagus", 1)], vals[("esophagus", 2)]
+    ax.annotate(f"Resampling to 1.95 mm costs the esophagus resolution ({e1:.3f} → {e2:.3f});\n"
+                "native 0.98 mm keeps both: consistent spacing and detail",
+                xy=(0.5 * (bw + gap), e2 + 0.045), xytext=(-0.45, 1.13), fontsize=9.5, color=INK_2, ha="left", va="top",
+                arrowprops=dict(arrowstyle="-", color=AXIS, linewidth=1))
+    note(ax, "Full 40-patient release, the same 8 holdout patients for every bar; ENet k8, CE, no augmentation. "
+             "Native: mean of 2 seeds, others 1 seed (seed noise then ~±0.01–0.03).", y=-0.13)
+    save(fig, "elena_07_preprocessing_per_organ_full_data")
+
+
 def e06_qualitative_midterm_vs_native():
     """GT vs midterm vs native prediction on the same slice (physical mm, aligned)."""
     p = "Patient_28"
@@ -893,7 +939,7 @@ def f30_pipeline():
 
 def main():
     for f in (e01_midterm_per_organ, e02_ct_slices, e03_esophagus_resolution, e04_preprocessing_ablation,
-              e05_resolution_per_organ, e06_qualitative_midterm_vs_native, g07_augmentation_2x2, g08_seed_spread,
+              e05_resolution_per_organ, e06_qualitative_midterm_vs_native, e07_preprocessing_per_organ, g07_augmentation_2x2, g08_seed_spread,
               g09_augmentation_examples, p10_pixel_share, p11_loss_comparison, p12_per_patient_esophagus,
               d13_sampler_share, d14_sampler_hd95, j15_width_curve, j16_transformer, j17_val_curves, j18_lr_schedules,
               b21_hd95_raw_vs_post_models, b22_postprocessing_variants, b23_one_seed_lies, b24_stray_blob_projection,
@@ -909,3 +955,90 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+# ================================================================ RESULTS TABLE
+def results_table():
+    """All main runs as one table image: the kept ladder, the final model's CV, and what we tried but dropped.
+    Δ = mean Dice minus the step it builds on (previous ladder step, or the comparator named in the row)."""
+    def seeds(e, ss):
+        return [repo(e, s) for s in ss]
+    P, R = "metrics_3d_post", "metrics_3d"
+    start, mid = [repo("full_data_baseline")], [repo("current")]
+    nat, ce = seeds("spacing_native_384", (42, 43)), seeds("augmentation-native384", (42, 43, 44))
+    ced, smp, k16 = seeds("loss_ce_dice", (42, 43)), seeds("combo_core_ce", (42, 43)), seeds("combo_core_ce_k16", (42, 43))
+    fin, k32 = final_runs(), seeds("combo_core_ce_k32", (42, 43))
+    # (label, runs, metrics key, reference runs, reference key)
+    sections = [
+        ("Kept: one change per step  (Δ = vs the previous step)", [
+            ("Starter code (no window, no resampling)", start, R, None, None),
+            ("Midterm pipeline (HU window, 1.95 mm)", mid, R, start, R),
+            ("+ native resolution 0.98 mm, 384²", nat, R, mid, R),
+            ("+ GPU augmentation = CE baseline", ce, P, nat, R),
+            ("+ Dice term in the loss (CE + Dice)", ced, P, ce, P),
+            ("+ weighted slice sampler", smp, P, ced, P),
+            ("+ wider ENet (kernels 16)", k16, P, smp, P),
+            ("+ 50 epochs, cosine lr = FINAL MODEL", fin, P, k16, P),
+        ]),
+        ("Final model on unseen patients", [
+            ("Cross-validation, folds 1–4 (32 other patients)",
+             [wb(f"combo_core_ce_k16_cosine50/cv5_40-f{f}-s42") for f in (1, 2, 3, 4)], P, None, None),
+        ]),
+        ("Tried, not kept  (Δ = vs the step in brackets)", [
+            ("Focal + Dice  (vs CE + Dice)", seeds("loss_focal_dice", (42, 43)), P, ced, P),
+            ("CE + Tversky  (vs CE + Dice)", seeds("loss_ce_tversky", (42, 43)), P, ced, P),
+            ("Weighted sampler alone  (vs CE baseline)", seeds("sampler_weighted", (42, 43)), P, ce, P),
+            ("Focal + Dice + sampler  (vs CE + Dice + sampler)", seeds("combo_core_focal", (42, 43)), P, smp, P),
+            ("2.5D + lung window  (vs CE baseline)", [repo("enet_25d_lung")], P, ce, P),
+            ("Boundary loss, weight 5  (vs CE baseline)", seeds("boundary_per_organ_w5", (42, 43)), P, ce, P),
+            ("Boundary loss w5 on CE + Dice + sampler  (vs that)", [repo("combo_core_ce_boundary_w5")], P, smp, P),
+            ("Cosine lr over 25 epochs  (vs CE baseline)", seeds("schedule_cosine", (42, 43)), P, ce, P),
+            ("Transformer at stage 2 in ENet k32  (vs k32)", [repo("tf_st2_combo_core_ce_k32_res_pos")], P, k32, P),
+            ("ENet kernels 32  (vs kernels 16)", k32, P, k16, P),
+            ("ENet k32, 50 epochs cosine  (vs final model)",
+             [wb(f"combo_core_ce_k32_cosine50/holdout40-f0-s{s}") for s in (42, 43)], P, fin, P),
+        ]),
+    ]
+    cols = ["Configuration", "Runs", "Dice", "Δ Dice", "Esophagus", "Heart", "Trachea", "Aorta",
+            "HD95\nmm ↓", "ASSD\nmm ↓", "NSD ↑"]
+    xs = [0.0, 0.43, 0.49, 0.55, 0.625, 0.69, 0.75, 0.81, 0.87, 0.935, 0.995]
+    rows = []
+    for title, items in sections:
+        rows.append(("section", title))
+        for lab, runs, key, ref, rkey in items:
+            d = mean_of(runs, metric="dice", key=key)
+            delta = "–" if ref is None else f"{d - mean_of(ref, metric='dice', key=rkey):+.3f}"
+            vals = [str(len(runs)) + ("" if key == P else " raw"), f"{d:.4f}" if "FINAL" in lab else f"{d:.3f}", delta] + \
+                   [f"{mean_of(runs, metric='dice', cls=o, key=key):.3f}" for o in ORGANS] + \
+                   [f"{mean_of(runs, metric='hd95', key=key):.1f}", f"{mean_of(runs, metric='assd', key=key):.2f}",
+                    f"{mean_of(runs, metric='nsd', key=key):.3f}"]
+            rows.append(("final" if "FINAL" in lab else "cv" if "Cross" in lab else "row", lab, vals))
+    n = len(rows) + 1
+    fig = plt.figure(figsize=(14, 0.36 * n + 1.3))
+    ax = fig.add_axes([0.01, 0.06, 0.98, 0.86])
+    ax.set_xlim(0, 1)
+    ax.set_ylim(n, 0)
+    ax.axis("off")
+    for i, c in enumerate(cols):
+        ax.text(xs[i], 0.55, c, ha="left" if i == 0 else "right", va="center", fontsize=10, color=INK_2,
+                fontweight="bold")
+    ax.plot([0, 1], [1, 1], color=INK_2, linewidth=1)
+    y = 1
+    for r in rows:
+        y += 1
+        if r[0] == "section":
+            ax.text(0, y - 0.45, r[1], fontsize=10.5, color=INK, fontweight="bold", va="center")
+            ax.plot([0, 1], [y - 0.05, y - 0.05], color=GRID, linewidth=1)
+            continue
+        kind, lab, vals = r
+        if kind in ("final", "cv"):
+            ax.add_patch(plt.Rectangle((-0.005, y - 0.95), 1.01, 0.9, color="#eef3fb" if kind == "final" else "#f3f2ee",
+                                       zorder=0, linewidth=0))
+        w = "bold" if kind == "final" else None
+        ax.text(0, y - 0.5, lab, fontsize=10, color=INK, va="center", fontweight=w)
+        for i, v in enumerate(vals, start=1):
+            ax.text(xs[i], y - 0.5, v, fontsize=10, ha="right", va="center", color=INK if i != 1 else INK_2, fontweight=w)
+    fig.text(0.01, 0.015, "3D metrics on the 8 holdout patients (CV row: 32 other patients), after post-processing (keep components ≥ 10%), "
+             "mean over runs (seeds or folds); \"raw\" = without post-processing (changes Dice by ≤ 0.003). "
+             "Differences < ~0.01 are within seed noise (CE baseline seeds: 0.863–0.870).", fontsize=8.3, color=MUTED)
+    save(fig, "final_31_results_table")

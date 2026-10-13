@@ -32,6 +32,7 @@ CT images are shown in the radiological view (front up, the patient's left on th
 | `elena_04_preprocessing_ablation` | Elena, 4 / backup | Δ Dice of every preprocessing change vs midterm |
 | `elena_05_resolution_per_organ` | Elena, 4 | Dice per organ at 1.95 → 1.5 → 0.98 mm; esophagus +0.098 |
 | `elena_06_qualitative_midterm_vs_native` | Elena, 4 | GT vs midterm vs native prediction, same slice |
+| `elena_07_preprocessing_per_organ_full_data` | Elena, 3–4 | The midterm per-organ preprocessing chart, rebuilt on the full data + native spacing |
 | `githa_07_augmentation_by_resolution` | Githa, 5 | Augmentation helps at native, not at 1.95 mm |
 | `githa_08_seed_spread` | Githa, 5 | Seed spread 0.026 → 0.007 with augmentation |
 | `githa_09_augmentation_examples` | Githa, 5 | One slice under each augmentation; roll wraps around |
@@ -54,6 +55,7 @@ CT images are shown in the radiological view (front up, the patient's left on th
 | `final_28_starter_vs_final_cv` | Part 5, 13 | Starter → final on unseen folds (raw), +0.155 to +0.211 |
 | `final_29_cv_hd95_raw_vs_post` | Part 5, 14 | In CV the filter makes esophagus HD95 worse |
 | `final_30_pipeline_diagram` | Part 5, 12 | Final pipeline as 7 boxes |
+| `final_31_results_table` | Part 5 / backup B1 | All runs: kept ladder, CV, and tried-not-kept, with Δ vs the step each builds on |
 
 Not possible from the local data: a qualitative image of the **final model** (its predictions are on
 Snellius: `results/combo_core_ce_k16_cosine50/holdout40-f0-s4*/best_epoch/val/`). Copy that folder to a

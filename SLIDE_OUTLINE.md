@@ -84,7 +84,8 @@ Total: 10:00. Part 5 speaker still to decide (Elena, Githa or David).
 ## Puck and David — class imbalance (1:45)
 
 ### Slide 6 — Cross-entropy ignores the esophagus; a Dice term makes every organ count (Puck, 0:50)
-- **Visual:** left, pixel-share bar of a typical slice (background ≫ heart ≫ … ≫ esophagus); right,
+- **Visual:** left, how rare the esophagus is (`extra/puck_10_voxel_share.png`: 0.09% of all training voxels,
+  1 in ~1,170; in a typical heart-level slice the heart has ~100× more pixels than the esophagus); right,
   the loss table (2 seeds each):
 
   | Loss | Dice | Esophagus | HD95 |
@@ -209,7 +210,7 @@ Total: 10:00. Part 5 speaker still to decide (Elena, Githa or David).
 | 3 | Esophagus crop at 1.95 vs 0.98 mm | preprocessing cache, one patient | Elena |
 | 4, 5, 7, 9, 12 | Ladder strip (mean + esophagus Dice per step) | notes section 0 ladder table | one person for all, same style |
 | 5 | Aug vs no-aug bars + seed dot plot; 4 augmented example slices | notes 2b; `segpipe/augment.py` on one slice | Githa |
-| 6 | Pixel share per class in a slice + loss table | GT slices; notes 2c | Puck |
+| 6 | Voxel share per class (`puck_10_voxel_share`, done) + loss table | GT slices; notes 2c | Puck |
 | 7 | Slice-share bars before/after sampler | sampler printout (37/53 → 18/75 %) | David |
 | 8 | Params vs Dice curve; ENet sketch with attention block | notes 2d | Junis |
 | 9 | Val-Dice curves k16 constant vs k16 cosine50 | W&B (`combo_core_ce_k16`, `combo_core_ce_k16_cosine50`) | Junis |
